@@ -3,6 +3,11 @@
 All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased]
+
+### Removed
+- Python 3.9 support. 3.9 is end-of-life and no longer available on GitHub's current Ubuntu runners; `requires-python` is now `>=3.10` and CI tests 3.10–3.12
+
 ## [0.7.0] - 2026-10-24
 
 ### Added
