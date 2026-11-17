@@ -22,7 +22,7 @@ Task Specification → Architecture Search → Pareto-Optimal Architectures
 | `generation_balanced` | latency (ms) | 180 | 301.9 | 320 |
 | `verification_reliable` | cost per call | 0.006 | 0.0086 | 0.009 |
 
-> **What this does and does not show.** The mis-declared values move toward the truth, and mean error across all twelve components falls for latency (11.67 → 1.51 ms) and cost. Reliability is the exception: its mean error *rises* (0.030 → 0.041), because blending a handful of pass/fail probes with a fixed weight adds noise to components that were declared correctly. Evidence-weighted calibration is the next piece of work.
+> **What this does and does not show.** The mis-declared values move toward the truth, and mean error across all twelve components falls for latency (11.67 → 1.51 ms) and cost. Reliability is the exception: its mean error *rises* (0.030 → 0.041), because a handful of pass/fail probes is a noisy measurement. Treat calibrated reliability as approximate until you have many runs per component.
 
 ## Installation
 
