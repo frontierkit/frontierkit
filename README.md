@@ -13,7 +13,9 @@ Instead of manually wiring LLM pipelines (`retrieval → LLM → verifier → to
 Task Specification → Architecture Search → Pareto-Optimal Architectures
 ```
 
-**ChatCortex is the only agent framework that re-synthesizes your architecture from what actually happened.** Execution telemetry is calibrated back into the component registry, so every new synthesis round runs against *measured* behavior instead of declared guesses. The shipped demo makes this concrete: in four closed-loop iterations, `examples/closed_loop.py` moves a component's declared reliability from 0.78 to a corrected 0.53, lifts a budget retriever from 0.82 to 0.93, and reshapes the search frontier around the values the system actually measured.
+**ChatCortex re-synthesizes your architecture from what was measured.** Execution telemetry is calibrated back into the component registry, so every new synthesis round runs against observed behavior instead of declared guesses. `examples/closed_loop.py` shows the mechanism offline: over four iterations, probe outcomes are blended into the registry and the frontier is re-synthesized from the updated values (`retrieval_speedster` reliability moves 0.78 → 0.53, `retrieval_budget` 0.82 → 0.93).
+
+> **What the offline demo does and does not show.** The simulator draws each outcome from the component's *declared* reliability, so the shifts above are sampling variation over a few probes, not a discovered correction. The demo proves the loop's plumbing; measuring real components requires an execution backend.
 
 ## Installation
 
