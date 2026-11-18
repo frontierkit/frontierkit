@@ -39,7 +39,10 @@ from chatcortex import (
 # carries its own. Current Claude models reject a temperature below 1 and
 # think before answering, so that row sets no temperature and leaves room
 # for the answer.
-SHORT_ANSWER = {"max_tokens": 300, "temperature": 0}
+# REQUEST_TIMEOUT_S bounds one request; the SDK retries a timed-out
+# request, so a dead endpoint gives up after a few minutes, not hours.
+REQUEST_TIMEOUT_S = 120
+SHORT_ANSWER = {"max_tokens": 300, "temperature": 0, "timeout": REQUEST_TIMEOUT_S}
 
 # name, key variable, base URL, model variable, default model, request options
 PROVIDERS = [
@@ -65,7 +68,7 @@ PROVIDERS = [
         "https://api.anthropic.com/v1/",
         "ANTHROPIC_MODEL",
         "claude-opus-5-5",
-        {"max_tokens": 1024},
+        {"max_tokens": 1024, "timeout": REQUEST_TIMEOUT_S},
     ),
 ]
 
@@ -151,9 +154,10 @@ def main():
     routes = {}
     models = {}
     for name, (provider_backend, metadata, model, row) in configured.items():
+        print(f"  {name:8s} {model:34s}", end=" ", flush=True)
         probe = provider_backend(metadata, EXAMPLES[0].input)
         status = "ok" if probe.success else "FAILED"
-        print(f"  {name:8s} {model:34s} {status}  {probe.latency_ms:7.0f} ms")
+        print(f"{status}  {probe.latency_ms:7.0f} ms", flush=True)
         if probe.success:
             registry.register(metadata)
             routes[name] = provider_backend
@@ -174,7 +178,18 @@ def main():
     task = TaskSpecification(required_capabilities=["answer"])
     frontier = ExhaustiveSynthesizer(registry).synthesize(task)
     eval_set = EvalSet(examples=EXAMPLES, scorer=contains_answer)
-    evaluations = evaluate_pipelines(frontier, executor, eval_set)
+
+    # Free and shared endpoints can take a minute per answer, so report
+    # each provider as it finishes instead of going quiet.
+    print()
+    print(f"Asking {len(EXAMPLES)} questions per provider (slow endpoints can take minutes)")
+    evaluations = []
+    for candidate in frontier:
+        name = next(metadata.name for _, metadata in candidate.graph.iter_components())
+        print(f"  {name} ...", end=" ", flush=True)
+        (evaluation,) = evaluate_pipelines([candidate], executor, eval_set)
+        evaluations.append(evaluation)
+        print(f"done, {evaluation.latency_ms:.0f} ms per answer", flush=True)
 
     print()
     print(f"{len(EXAMPLES)} questions per provider")
