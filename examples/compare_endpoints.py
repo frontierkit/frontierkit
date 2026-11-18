@@ -9,7 +9,7 @@ Set any of these keys, then run from the repo root:
     export SAIA_API_KEY=...        # GWDG SAIA / Chat AI
     export NVIDIA_API_KEY=...      # NVIDIA API catalog
     export GROQ_API_KEY=...        # Groq
-    export OPENROUTER_API_KEY=...  # OpenRouter (default model is paid)
+    export OPENROUTER_API_KEY=...  # OpenRouter (free models only by default)
     export ANTHROPIC_API_KEY=...   # Claude, through its OpenAI-compatible endpoint
     pip install "chatcortex[real]"
     python examples/compare_endpoints.py
@@ -17,10 +17,10 @@ Set any of these keys, then run from the repo root:
 Optional: SAIA_MODEL, NVIDIA_MODEL, GROQ_MODEL, OPENROUTER_MODEL and
 ANTHROPIC_MODEL choose the model.
 
-Two rows cost money. OpenRouter's default, Claude Haiku 5.5, costs well
-under one cent per run; Claude Opus 5.5 direct costs at most about eight
-cents. Cost is measured from reported token usage for those defaults; for
-a model you choose yourself, add its price to the row to measure it.
+Every default is a free model. A paid model runs only when you opt in
+with ALLOW_PAID_MODELS=1: that covers the Claude row and any OpenRouter
+model without the ":free" suffix. Paid rows report cost per question,
+measured from token usage when the row lists the model's price.
 
 Each provider gets 4 small requests (one connection check, three
 questions). A provider that fails the check is skipped, and the script
@@ -92,8 +92,10 @@ PROVIDERS = [
         "OPENROUTER_API_KEY",
         "https://openrouter.ai/api/v1",
         "OPENROUTER_MODEL",
-        "anthropic/claude-haiku-5.5",
-        {"max_tokens": 1024, "timeout": REQUEST_TIMEOUT_S},
+        "google/gemma-4-31b-it:free",
+        SHORT_ANSWER,
+        # Free while the model name ends in ":free"; any other OpenRouter
+        # model is paid. Example price for one paid choice:
         {"anthropic/claude-haiku-5.5": TokenPrice(0.10, 0.50)},
     ),
     (
@@ -166,6 +168,14 @@ def main():
         if not api_key:
             continue
         model = os.environ.get(model_var, default_model)
+        if name == "openrouter" and model.endswith(":free"):
+            prices = FREE
+        if prices != FREE and os.environ.get("ALLOW_PAID_MODELS") != "1":
+            print(
+                f"Skipping {name} ({model}): it is a paid model. "
+                "Set ALLOW_PAID_MODELS=1 to include it."
+            )
+            continue
         try:
             provider_backend = OpenAIBackend(
                 model=model,
