@@ -271,6 +271,7 @@ Approximation quality is measured with **Pareto coverage**, **hypervolume loss**
 - [Architecture](docs/ARCHITECTURE.md) — system design and component layers
 - [Benchmarks](docs/BENCHMARKS.md) — experimental evaluation of synthesis strategies
 - [Examples](examples/) — runnable demos and budget-sweep experiments
+- [QA frontier benchmark](benchmarks/qa_frontier/) — finds the pipelines worth choosing between on real questions, using free models only
 - [Contributing](CONTRIBUTING.md) — development setup and PR guidelines
 - [Changelog](CHANGELOG.md)
 

@@ -16,7 +16,7 @@ jobs:
       - name: Install ruff
         run: pip install ruff
       - name: Lint
-        run: ruff check chatcortex tests examples
+        run: ruff check chatcortex tests examples benchmarks
 
   test:
     runs-on: ubuntu-latest
@@ -56,6 +56,16 @@ jobs:
           OPENROUTER_API_KEY: ""
           ANTHROPIC_API_KEY: ""
         run: python examples/compare_endpoints.py
+
+      - name: Run QA benchmark scripts (keyless path)
+        env:
+          SAIA_API_KEY: ""
+          NVIDIA_API_KEY: ""
+          GROQ_API_KEY: ""
+          OPENROUTER_API_KEY: ""
+        run: |
+          python -m benchmarks.qa_frontier.collect
+          python -m benchmarks.qa_frontier.report
 
       - name: Run closed loop real-backend example (keyless path)
         env:

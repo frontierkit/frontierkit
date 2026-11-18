@@ -6,6 +6,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ## [Unreleased]
 
 ### Added
+- `benchmarks/qa_frontier/` — a question-answering benchmark over 30 pipelines (3 context options × free models × 2 postprocess steps), scored with the SQuAD token F1. `collect` gathers model replies into a resumable response cache with per-provider spacing for free-tier limits; `report` scores every pipeline offline and prints the true quality frontier. Ships with six sample questions; any SQuAD-format file can be used
 - **OpenAI-compatible endpoints** — `OpenAIBackend(base_url=..., api_key=...)` points the backend at any vendor or local server that accepts chat-completions requests, with no new dependency. `request_options` adds keyword arguments such as `max_tokens` or `temperature` to every request
 - **`RoutedBackend({component name: backend}, default=...)`** sends each component to its own backend, so one search can mix vendors and local functions; `unrouted(registry)` lists components without a route, and running one raises `BackendConfigurationError`
 - `examples/compare_endpoints.py` — scores providers on the same three questions and reports measured quality and latency; reads `SAIA_API_KEY`, `NVIDIA_API_KEY`, `GROQ_API_KEY`, `OPENROUTER_API_KEY` and `ANTHROPIC_API_KEY`, and prints a setup card when none is set. Every default model is free; paid models (the Claude row, or an OpenRouter model without `:free`) run only with `ALLOW_PAID_MODELS=1` and report measured cost per question from token usage
