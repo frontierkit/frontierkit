@@ -12,6 +12,8 @@ Core capabilities include:
 - Pareto frontier analysis
 """
 
+from .execution.callable_backend import CallableBackend, StepResult
+from .execution.executor import AgentExecutor, BackendConfigurationError
 from .graph.agent_graph import AgentGraph
 from .loop import LoopIteration, run_closed_loop
 from .registry.capability_registry import CapabilityRegistry
@@ -40,6 +42,10 @@ __all__ = [
     "ProgressiveParetoBeamSynthesizer",
     "SynthesisBudget",
     "AgentGraph",
+    "AgentExecutor",
+    "BackendConfigurationError",
+    "CallableBackend",
+    "StepResult",
     "CapabilityRegistry",
     "LoopIteration",
     "ComponentMetadata",

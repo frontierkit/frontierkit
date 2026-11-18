@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ## [Unreleased]
 
 ### Added
+- **Components as Python callables** — `CallableBackend({name: function})` runs each graph node as an ordinary function that receives the previous step's output. Latency is measured; a function that raises or returns `StepResult(success=False)` is a failed step; cost is the declared value unless `StepResult(cost=...)` reports one. `CallableBackend.missing(registry)` lists components without an implementation, and running one raises `BackendConfigurationError` instead of being recorded as a component failure
+- `AgentExecutor.execute(graph, task_input=...)` hands an input to the first step, and `ExecutionResult` gains `output` (the last step's return value) and `success`
+- `AgentExecutor`, `CallableBackend`, `StepResult` and `BackendConfigurationError` are exported from the top-level package
+- `examples/callable_pipeline.py` — five plain functions, three pipelines on the frontier, each run on a real question (no API keys, runs in CI)
 - **Evidence-weighted calibration** — `calibrate(..., prior_strength=n0)` treats the declared value as `n0` pseudo-observations, so a component with `n` records gets weight `n / (n + n0)` on its empirical mean instead of a fixed `alpha`. `run_closed_loop(..., prior_strength=n0)` recalibrates the declared registry from all traces collected so far each round. Defaults are unchanged: without `prior_strength` both functions behave as before
 
 ### Changed

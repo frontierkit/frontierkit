@@ -46,9 +46,37 @@ class ExecutionProtocol(Protocol):
 ProbeResult = ExecutionProtocol.ProbeResult
 
 
+class BackendConfigurationError(Exception):
+    """A backend cannot run a component at all (not: the component failed).
+
+    Backend exceptions normally become failed probes, because a component
+    that errors is an execution result worth recording. A backend raises
+    this instead when the setup is wrong, for example no implementation
+    exists for a component, and the executor lets it propagate so the
+    mistake is not recorded as component unreliability.
+    """
+
+
 class ExecutionResult:
-    def __init__(self, telemetry: TelemetryLogger):
+    """Outcome of executing one graph.
+
+    Attributes:
+        telemetry: The per-step records.
+        output: What the last step returned when every step succeeded;
+            ``None`` if the chain stopped on a failure, and always
+            ``None`` for the simulator, which produces no outputs.
+        success: ``True`` when every step succeeded.
+    """
+
+    def __init__(
+        self,
+        telemetry: TelemetryLogger,
+        output: Any = None,
+        success: bool = True,
+    ):
         self.telemetry = telemetry
+        self.output = output
+        self.success = success
 
     def summary(self):
         return self.telemetry.summary()
@@ -100,10 +128,19 @@ class AgentExecutor:
         # local random generator - NO RNG pollution, no side-effects, clean isolation
         self.random = random.Random(seed)
 
-    def execute(self, graph: AgentGraph) -> ExecutionResult:
+    def execute(self, graph: AgentGraph, task_input: Any = None) -> ExecutionResult:
+        """Run ``graph`` once.
+
+        Args:
+            graph: The pipeline to execute.
+            task_input: Handed to the first step's backend call; each
+                later step receives the previous step's output. Ignored
+                by the simulator.
+        """
         telemetry = TelemetryLogger()
 
-        node_input: Any = None
+        node_input: Any = task_input
+        succeeded = True
         for node_id in graph.get_execution_order():
             metadata = graph.get_metadata(node_id)
             latency_ms, cost, success, output = self._evaluate_node(
@@ -120,10 +157,15 @@ class AgentExecutor:
             )
 
             if not success:
+                succeeded = False
                 break # Stop pipeline on failure
             node_input = output
 
-        return ExecutionResult(telemetry=telemetry)
+        return ExecutionResult(
+            telemetry=telemetry,
+            output=node_input if succeeded and self.backend is not None else None,
+            success=succeeded,
+        )
 
     def _evaluate_node(self, metadata: ComponentMetadata, node_input: Any):
         """Run one node through the backend (if set) or the simulator.
@@ -170,6 +212,8 @@ class AgentExecutor:
         """Call the backend once, turning exceptions into failed probes."""
         try:
             return self.backend(metadata, node_input)
+        except BackendConfigurationError:
+            raise  # a setup mistake, not a component outcome
         except Exception as exc:  # backend failures are execution results
             return ProbeResult(
                 success=False,

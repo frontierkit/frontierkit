@@ -110,6 +110,36 @@ To search over your own components, build a `CapabilityRegistry` and register
 `ComponentMetadata` describing each model, tool, or verifier — see
 `examples/` for complete walkthroughs.
 
+## Run your own functions
+
+Back each component with a plain Python function and the executor runs a
+synthesized pipeline for real: every function receives the previous step's
+output and returns its own.
+
+```python
+from chatcortex import AgentExecutor, CallableBackend
+
+backend = CallableBackend({
+    "retrieve_keyword": lambda question: search(question),
+    "answer_short": lambda passages: draft(passages),
+    "verify_grounded": lambda answer: check(answer),
+})
+backend.missing(registry)   # [] when every registry component is covered
+
+result = AgentExecutor(backend=backend).execute(arch.graph, task_input="your question")
+result.output               # what the last step returned
+result.success              # False if any step raised or reported failure
+```
+
+Latency is measured around each call. A function that raises, or returns
+`StepResult(output=None, success=False)`, is recorded as a failed step and
+stops the pipeline. Cost is the declared `cost_per_call` unless the function
+returns `StepResult(output, cost=...)`. A complete runnable version:
+
+```bash
+python examples/callable_pipeline.py
+```
+
 ## Registry packs
 
 A registry ships as a JSON pack in the loader's document shape. Saving it
