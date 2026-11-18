@@ -106,6 +106,21 @@ export OPENAI_API_KEY=...   # every reply spends your credits
 python examples/closed_loop_real.py
 ```
 
+Give the backend your prices and each call is costed from the token usage the
+API reports, instead of the declared `cost_per_call`:
+
+```python
+from chatcortex.adapters.openai_backend import OpenAIBackend, TokenPrice
+
+backend = OpenAIBackend(
+    model="your-model",
+    prices={"your-model": TokenPrice(input_per_million=2.0, output_per_million=8.0)},
+)
+```
+
+Prices are yours to supply because they are model-specific and change over
+time. A model without a price falls back to the declared cost.
+
 To search over your own components, build a `CapabilityRegistry` and register
 `ComponentMetadata` describing each model, tool, or verifier — see
 `examples/` for complete walkthroughs.

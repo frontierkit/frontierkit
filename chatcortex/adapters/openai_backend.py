@@ -9,20 +9,45 @@ inject a stub ``client`` instead and need no key or network.
 What is measured vs. declared:
 
 - **Latency** and **success** are measured from the real SDK call.
-- **Cost** is not derivable from a completion alone (token pricing is
-  model-specific and changes over time), so the component's declared
-  ``cost_per_call`` is recorded. Component metadata stays pure: nothing
-  here mutates it, calibration is the component that turns telemetry
-  into updated metadata.
+- **Cost** is measured when you supply prices: pass ``prices`` mapping a
+  model name to a :class:`TokenPrice`, and each call is costed from the
+  token usage the API reports. Prices are yours to supply because they
+  are model-specific and change over time. For a model without a price,
+  or a response without usage, the component's declared ``cost_per_call``
+  is recorded instead. A call that raises records zero cost.
+
+Component metadata stays pure: nothing here mutates it, calibration is
+the component that turns telemetry into updated metadata.
 """
 
 import time
-from typing import Any, Callable, Optional
+from dataclasses import dataclass
+from typing import Any, Callable, Mapping, Optional
 
 from ..execution.executor import ProbeResult
 from ..registry.metadata import ComponentMetadata
 
 DEFAULT_MODEL = "gpt-5.5-mini"
+
+
+@dataclass(frozen=True)
+class TokenPrice:
+    """What one model charges, in your currency per million tokens."""
+
+    input_per_million: float
+    output_per_million: float
+
+    def __post_init__(self):
+        for name in ("input_per_million", "output_per_million"):
+            value = getattr(self, name)
+            if isinstance(value, bool) or not isinstance(value, (int, float)) or value < 0:
+                raise ValueError(f"{name} must be a number >= 0, {value!r} given")
+
+    def cost(self, input_tokens: int, output_tokens: int) -> float:
+        return (
+            input_tokens * self.input_per_million
+            + output_tokens * self.output_per_million
+        ) / 1_000_000
 
 
 class OpenAIBackend:
@@ -35,6 +60,10 @@ class OpenAIBackend:
             maps a component to the model it should run on (e.g. cheap
             models for retrieval tooling, stronger models for
             generation); takes precedence over ``model``.
+        prices: Optional ``{model name: TokenPrice}``. When the model a
+            call ran on has a price and the response reports token
+            usage, the recorded cost is computed from that usage;
+            otherwise the component's declared ``cost_per_call`` is used.
         client: Optional pre-built OpenAI client (or any object exposing
             ``chat.completions.create``). Meant for tests; when given,
             the ``openai`` package is never imported.
@@ -45,9 +74,16 @@ class OpenAIBackend:
         model: str = DEFAULT_MODEL,
         model_for: Optional[Callable[[ComponentMetadata], str]] = None,
         client: Optional[Any] = None,
+        prices: Optional[Mapping[str, TokenPrice]] = None,
     ):
         self._model = model
         self.model_for = model_for
+        self._prices = dict(prices or {})
+        for priced_model, price in self._prices.items():
+            if not isinstance(price, TokenPrice):
+                raise TypeError(
+                    f"price for '{priced_model}' must be a TokenPrice, {price!r} given"
+                )
         if client is not None:
             self._client = client
         else:
@@ -101,6 +137,16 @@ class OpenAIBackend:
         return ProbeResult(
             success=bool(output),
             latency_ms=latency_ms,
-            cost=metadata.cost_per_call,
+            cost=self._cost(model, response, metadata),
             output=output,
         )
+
+    def _cost(self, model: str, response: Any, metadata: ComponentMetadata) -> float:
+        """Cost from reported token usage, or the declared cost without it."""
+        price = self._prices.get(model)
+        usage = getattr(response, "usage", None)
+        input_tokens = getattr(usage, "prompt_tokens", None)
+        output_tokens = getattr(usage, "completion_tokens", None)
+        if price is None or input_tokens is None or output_tokens is None:
+            return metadata.cost_per_call
+        return price.cost(input_tokens, output_tokens)

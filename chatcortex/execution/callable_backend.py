@@ -19,7 +19,10 @@ What is measured vs. declared:
 - **Success** is ``True`` unless the function raises, or returns a
   :class:`StepResult` with ``success=False``.
 - **Cost** is the component's declared ``cost_per_call`` unless the
-  function returns a :class:`StepResult` carrying its own ``cost``.
+  function returns a :class:`StepResult` carrying its own ``cost``. A
+  function that raises records zero cost, as a failed API call does; to
+  report what a failure cost, return
+  ``StepResult(output=None, success=False, cost=...)`` instead of raising.
 """
 
 import time
@@ -94,7 +97,7 @@ class CallableBackend:
             return ProbeResult(
                 success=False,
                 latency_ms=(time.perf_counter() - started) * 1000.0,
-                cost=metadata.cost_per_call,
+                cost=0.0,
                 output=f"{metadata.name} raised {type(exc).__name__}: {exc}",
             )
         latency_ms = (time.perf_counter() - started) * 1000.0

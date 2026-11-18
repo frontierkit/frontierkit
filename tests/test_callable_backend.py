@@ -79,7 +79,7 @@ def test_exception_in_a_component_is_a_failed_probe_and_stops_the_chain():
     result = AgentExecutor(backend=backend).execute(_chain("a", "b"))
     (record,) = result.telemetry.records
     assert record["success"] is False
-    assert record["cost"] == 0.01
+    assert record["cost"] == 0.0
     assert result.success is False
 
 
