@@ -15,7 +15,9 @@ Set any of these keys, then run from the repo root:
 Optional: SAIA_MODEL, NVIDIA_MODEL and ANTHROPIC_MODEL choose the model.
 
 Each provider gets 4 small requests (one connection check, three
-questions). Without any key the script prints this setup card and exits 0.
+questions). A provider that fails the check is skipped, and the script
+lists the model names its key can use. Without any key the script prints
+this setup card and exits 0.
 """
 
 import os
@@ -37,7 +39,7 @@ from chatcortex import (
 # carries its own. Current Claude models reject a temperature below 1 and
 # think before answering, so that row sets no temperature and leaves room
 # for the answer.
-SHORT_ANSWER = {"max_tokens": 60, "temperature": 0}
+SHORT_ANSWER = {"max_tokens": 300, "temperature": 0}
 
 # name, key variable, base URL, model variable, default model, request options
 PROVIDERS = [
@@ -54,7 +56,7 @@ PROVIDERS = [
         "NVIDIA_API_KEY",
         "https://integrate.api.nvidia.com/v1",
         "NVIDIA_MODEL",
-        "meta/llama-3.1-8b-instruct",
+        "openai/gpt-oss-120b",
         SHORT_ANSWER,
     ),
     (
@@ -92,15 +94,33 @@ def component(name, cost, latency):
     )
 
 
+def suggest_models(row, limit=40):
+    """After a failed check, print the model names this key can use."""
+    name, key_var, base_url, model_var, _default_model, _options = row
+    try:
+        import openai
+
+        client = openai.OpenAI(base_url=base_url, api_key=os.environ[key_var])
+        names = sorted(model.id for model in client.models.list())
+    except Exception as exc:  # listing is a convenience; never fail on it
+        print(f"           (could not list models: {type(exc).__name__})")
+        return
+    if not names:
+        return
+    print(f"           Models available to this key; set {model_var} to one of them:")
+    for model_name in names[:limit]:
+        print(f"             {model_name}")
+    if len(names) > limit:
+        print(f"             ... and {len(names) - limit} more")
+
+
 def main():
     try:
         from chatcortex.adapters.openai_backend import OpenAIBackend
     except ImportError:  # pragma: no cover
         OpenAIBackend = None
 
-    registry = CapabilityRegistry()
-    routes = {}
-    models = {}
+    configured = {}
     for index, row in enumerate(PROVIDERS):
         name, key_var, base_url, model_var, default_model, options = row
         api_key = os.environ.get(key_var)
@@ -108,7 +128,7 @@ def main():
             continue
         model = os.environ.get(model_var, default_model)
         try:
-            routes[name] = OpenAIBackend(
+            provider_backend = OpenAIBackend(
                 model=model,
                 base_url=base_url,
                 api_key=api_key,
@@ -117,30 +137,39 @@ def main():
         except ImportError as exc:
             print(exc)
             return 0
-        models[name] = model
-        # Distinct placeholder values so neither pipeline is discarded
-        # before it has been measured.
-        registry.register(component(name, cost=0.001 * (index + 1), latency=1000 - 100 * index))
+        # Distinct placeholder values so no pipeline is discarded before
+        # it has been measured.
+        metadata = component(name, cost=0.001 * (index + 1), latency=1000 - 100 * index)
+        configured[name] = (provider_backend, metadata, model, row)
 
-    if not routes:
+    if not configured:
         print(__doc__)
         return 0
 
-    backend = RoutedBackend(routes)
-    executor = AgentExecutor(backend=backend)
-
     print("Connection check")
-    reachable = True
-    for name in routes:
-        probe = backend(registry.get(name), EXAMPLES[0].input)
+    registry = CapabilityRegistry()
+    routes = {}
+    models = {}
+    for name, (provider_backend, metadata, model, row) in configured.items():
+        probe = provider_backend(metadata, EXAMPLES[0].input)
         status = "ok" if probe.success else "FAILED"
-        print(f"  {name:8s} {models[name]:34s} {status}  {probe.latency_ms:7.0f} ms")
-        if not probe.success:
-            reachable = False
-            print(f"           {probe.output}")
-    if not reachable:
-        print("Fix the failing provider above (key, model name or URL) and rerun.")
+        print(f"  {name:8s} {model:34s} {status}  {probe.latency_ms:7.0f} ms")
+        if probe.success:
+            registry.register(metadata)
+            routes[name] = provider_backend
+            models[name] = model
+            continue
+        print(f"           {probe.output}")
+        suggest_models(row)
+
+    if not routes:
+        print("No provider answered. Fix the errors above and rerun.")
         return 1
+    skipped = [name for name in configured if name not in routes]
+    if skipped:
+        print(f"Continuing without: {', '.join(skipped)}")
+
+    executor = AgentExecutor(backend=RoutedBackend(routes))
 
     task = TaskSpecification(required_capabilities=["answer"])
     frontier = ExhaustiveSynthesizer(registry).synthesize(task)
