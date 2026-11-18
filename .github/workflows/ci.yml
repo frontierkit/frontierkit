@@ -45,6 +45,9 @@ jobs:
       - name: Run callable pipeline example
         run: python examples/callable_pipeline.py
 
+      - name: Run scored pipeline example
+        run: python examples/scored_pipeline.py
+
       - name: Run closed loop real-backend example (keyless path)
         env:
           OPENAI_API_KEY: ""

@@ -12,6 +12,13 @@ Core capabilities include:
 - Pareto frontier analysis
 """
 
+from .evaluation.eval_set import (
+    EvalSet,
+    Example,
+    PipelineEvaluation,
+    evaluate_pipelines,
+    quality_frontier,
+)
 from .execution.callable_backend import CallableBackend, StepResult
 from .execution.executor import AgentExecutor, BackendConfigurationError
 from .graph.agent_graph import AgentGraph
@@ -46,6 +53,11 @@ __all__ = [
     "BackendConfigurationError",
     "CallableBackend",
     "StepResult",
+    "EvalSet",
+    "Example",
+    "PipelineEvaluation",
+    "evaluate_pipelines",
+    "quality_frontier",
     "CapabilityRegistry",
     "LoopIteration",
     "ComponentMetadata",

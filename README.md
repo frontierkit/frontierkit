@@ -140,6 +140,42 @@ returns `StepResult(output, cost=...)`. A complete runnable version:
 python examples/callable_pipeline.py
 ```
 
+## Score pipelines on your own examples
+
+Declared numbers say nothing about whether a pipeline's answers are any good.
+Give ChatCortex example inputs and a scoring function, and it runs each
+pipeline on every example and reports measured quality, cost and latency.
+
+```python
+from chatcortex import EvalSet, Example, evaluate_pipelines, quality_frontier
+
+eval_set = EvalSet(
+    examples=[
+        Example("What is the boiling point of water?", expected="100"),
+        Example("How quickly does light travel?", expected="299,792"),
+    ],
+    scorer=lambda output, expected: expected in str(output),   # bool or 0..1
+)
+
+evaluations = evaluate_pipelines(frontier, executor, eval_set)
+best = quality_frontier(evaluations)[0]     # highest measured quality first
+best.components, best.quality, best.cost, best.success_rate
+```
+
+A run that fails part-way scores 0. `quality_frontier` keeps the pipelines not
+beaten on measured cost, latency and quality. In `examples/scored_pipeline.py`
+the three frontier pipelines score 1.00, 0.00 and 0.00 on four questions,
+although their declared reliabilities are 0.91, 0.85 and 0.71.
+
+Only pipelines the synthesizer proposes are scored. Pass `eval_set=` to
+`run_closed_loop` and every example run also feeds calibration, so a component
+that was declared better than it is loses its place and pipelines it was hiding
+get proposed and scored in later rounds.
+
+```bash
+python examples/scored_pipeline.py
+```
+
 ## Registry packs
 
 A registry ships as a JSON pack in the loader's document shape. Saving it
