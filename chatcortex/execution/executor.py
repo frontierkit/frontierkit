@@ -3,6 +3,7 @@ from dataclasses import dataclass
 from typing import Any, Literal, Optional, Protocol
 
 from chatcortex.graph.agent_graph import AgentGraph
+from chatcortex.registry.capability_registry import CapabilityRegistry
 from chatcortex.registry.metadata import ComponentMetadata
 from chatcortex.telemetry.logger import TelemetryLogger
 
@@ -68,15 +69,34 @@ class AgentExecutor:
     The chain stops on the first failure, exactly like the simulator.
     A backend exception is recorded as a failed probe (zero cost) and
     also stops the chain, so partial telemetry survives the error.
+
+    Hidden ground truth: by default the simulator draws outcomes from the
+    metadata carried by the graph, i.e. from the *declared* values, so a
+    calibration loop fed by it can only rediscover its own priors plus
+    sampling noise. Pass ``ground_truth`` (a registry holding each
+    component's *true* cost, latency and reliability) and the simulator
+    draws from those instead, looked up by component name. The synthesizer
+    and calibration never see that registry, which makes the simulator a
+    real test of whether a loop converges on values it was not told.
+    Components absent from ``ground_truth`` behave as declared.
+    ``ground_truth`` cannot be combined with ``backend``: a backend
+    already is the source of truth.
     """
     def __init__(
             self,
             mode: ExecutionMode = "deterministic",
             seed: Optional[int] = None,
             backend: Optional[ExecutionProtocol] = None,
+            ground_truth: Optional[CapabilityRegistry] = None,
         ):
+        if backend is not None and ground_truth is not None:
+            raise ValueError(
+                "ground_truth only applies to the simulator; a backend "
+                "is its own source of truth, so pass one or the other"
+            )
         self.mode = mode
         self.backend = backend
+        self.ground_truth = ground_truth
         # local random generator - NO RNG pollution, no side-effects, clean isolation
         self.random = random.Random(seed)
 
@@ -115,8 +135,12 @@ class AgentExecutor:
             probe = self._invoke_backend(metadata, node_input)
             return probe.latency_ms, probe.cost, probe.success, probe.output
 
+        # What the component really does: the hidden truth when one is
+        # supplied, otherwise the declared metadata itself.
+        actual = self._true_metadata(metadata)
+
         # Simulated latency
-        simulated_latency = metadata.avg_latency_ms
+        simulated_latency = actual.avg_latency_ms
 
         # Optional: actually sleep (disable if too slow)
         # time.sleep(simulated_latency / 1000)
@@ -125,11 +149,20 @@ class AgentExecutor:
         if self.mode == "deterministic":
             success = True
         elif self.mode == "probabilistic":
-            success = self.random.random() <= metadata.reliability_score
+            success = self.random.random() <= actual.reliability_score
         else:
             raise ValueError("Invalid execution mode")
 
-        return simulated_latency, metadata.cost_per_call, success, None
+        return simulated_latency, actual.cost_per_call, success, None
+
+    def _true_metadata(self, declared: ComponentMetadata) -> ComponentMetadata:
+        """The metadata the simulator samples from for one component."""
+        if self.ground_truth is None:
+            return declared
+        try:
+            return self.ground_truth.get(declared.name)
+        except KeyError:
+            return declared
 
     def _invoke_backend(
         self, metadata: ComponentMetadata, node_input: Any

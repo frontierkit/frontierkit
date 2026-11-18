@@ -1,17 +1,22 @@
-"""The closed loop on the demo registry - no API keys, no network.
+"""The closed loop against a hidden ground truth - no API keys, no network.
 
 Four rounds of synthesize -> execute (simulated) -> calibrate ->
-re-synthesize, printing the Pareto movement per iteration. Every number
-the last rounds print was shaped by measurements the loop itself took in
-earlier rounds: the exact pitch of ChatCortex, running offline.
+re-synthesize. The registry the loop starts from is *wrong* about four
+components; the simulator draws outcomes from a separate ground-truth
+registry that the synthesizer and the calibration never see. The final
+table compares declared, calibrated and true values, so the demo shows
+both what the loop learns and where it does not.
 
 Run from the repo root:
 
     python examples/closed_loop.py
 """
 
+import dataclasses
+
 from chatcortex.execution.executor import AgentExecutor
 from chatcortex.loop import run_closed_loop
+from chatcortex.registry.capability_registry import CapabilityRegistry
 from chatcortex.synthesis.progressive_pareto_beam_synthesizer import (
     ProgressiveParetoBeamSynthesizer,
 )
@@ -20,9 +25,39 @@ from chatcortex.synthesis.task_specification import TaskSpecification
 ITERATIONS = 4
 ALPHA = 0.4
 
+# Where the declared registry is wrong: component -> its true values.
+# Every other component really behaves as declared.
+HIDDEN_TRUTH = {
+    "retrieval_speedster": {"reliability_score": 0.55},   # declared 0.78
+    "retrieval_budget": {"reliability_score": 0.95},      # declared 0.82
+    "generation_balanced": {"avg_latency_ms": 320.0},     # declared 180
+    "verification_reliable": {"cost_per_call": 0.009},    # declared 0.006
+}
+
+FIELDS = ("reliability_score", "avg_latency_ms", "cost_per_call")
+
+
+def build_ground_truth(declared):
+    """The registry the simulator samples from; the loop never reads it."""
+    truth = CapabilityRegistry()
+    for metadata in declared.list_all():
+        truth.register(
+            dataclasses.replace(metadata, **HIDDEN_TRUTH.get(metadata.name, {}))
+        )
+    return truth
+
+
+def mean_abs_error(registry, truth, field):
+    components = truth.list_all()
+    return sum(
+        abs(getattr(registry.get(m.name), field) - getattr(m, field))
+        for m in components
+    ) / len(components)
+
 
 def main():
     registry = build_demo_registry()
+    truth = build_ground_truth(registry)
     task = TaskSpecification(
         required_capabilities=["retrieval", "generation", "verification"],
         max_latency=1500.0,
@@ -34,7 +69,9 @@ def main():
         synthesizer=lambda reg: ProgressiveParetoBeamSynthesizer(
             reg, base_beam_width=3, growth_factor=2.0
         ),
-        executor=AgentExecutor(mode="probabilistic", seed=42),
+        executor=AgentExecutor(
+            mode="probabilistic", seed=42, ground_truth=truth
+        ),
         iterations=ITERATIONS,
         alpha=ALPHA,
     )
@@ -85,16 +122,23 @@ def main():
         previous = (min_cost, max_rel)
 
     final = records[-1].registry
-    declared = {m.name: m for m in registry.list_all()}
-    print("Reliability: declared prior -> after the loop")
-    for metadata in final.list_all():
-        before = declared[metadata.name].reliability_score
-        if metadata.reliability_score != before:
-            arrow = ">" * 3
+
+    print("Mis-declared components: declared -> calibrated (truth)")
+    for name, overrides in HIDDEN_TRUTH.items():
+        for field, true_value in overrides.items():
             print(
-                f"  {metadata.name:28s} {before:.3f} {arrow} "
-                f"{metadata.reliability_score:.3f}"
+                f"  {name:24s} {field:18s} "
+                f"{getattr(registry.get(name), field):<8.4g} -> "
+                f"{getattr(final.get(name), field):<8.4g} ({true_value:.4g})"
             )
+
+    print()
+    print("Mean absolute error vs truth, all components: declared -> calibrated")
+    for field in FIELDS:
+        before = mean_abs_error(registry, truth, field)
+        after = mean_abs_error(final, truth, field)
+        verdict = "better" if after < before else "worse"
+        print(f"  {field:18s} {before:.4g} -> {after:.4g}  ({verdict})")
 
 
 if __name__ == "__main__":

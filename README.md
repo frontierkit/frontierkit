@@ -13,9 +13,16 @@ Instead of manually wiring LLM pipelines (`retrieval → LLM → verifier → to
 Task Specification → Architecture Search → Pareto-Optimal Architectures
 ```
 
-**ChatCortex re-synthesizes your architecture from what was measured.** Execution telemetry is calibrated back into the component registry, so every new synthesis round runs against observed behavior instead of declared guesses. `examples/closed_loop.py` shows the mechanism offline: over four iterations, probe outcomes are blended into the registry and the frontier is re-synthesized from the updated values (`retrieval_speedster` reliability moves 0.78 → 0.53, `retrieval_budget` 0.82 → 0.93).
+**ChatCortex re-synthesizes your architecture from what was measured.** Execution telemetry is calibrated back into the component registry, so every new synthesis round runs against observed behavior instead of declared guesses. `examples/closed_loop.py` tests this offline against a **hidden ground truth**: the starting registry is wrong about four components, and the simulator draws outcomes from true values the loop never sees. After four iterations (alpha 0.4, seed 42):
 
-> **What the offline demo does and does not show.** The simulator draws each outcome from the component's *declared* reliability, so the shifts above are sampling variation over a few probes, not a discovered correction. The demo proves the loop's plumbing; measuring real components requires an execution backend.
+| Component | Field | Declared | Calibrated | Truth |
+|---|---|---|---|---|
+| `retrieval_speedster` | reliability | 0.78 | 0.542 | 0.55 |
+| `retrieval_budget` | reliability | 0.82 | 0.908 | 0.95 |
+| `generation_balanced` | latency (ms) | 180 | 301.9 | 320 |
+| `verification_reliable` | cost per call | 0.006 | 0.0086 | 0.009 |
+
+> **What this does and does not show.** The mis-declared values move toward the truth, and mean error across all twelve components falls for latency (11.67 → 1.51 ms) and cost. Reliability is the exception: its mean error *rises* (0.030 → 0.041), because a handful of pass/fail probes is a noisy measurement. Treat calibrated reliability as approximate until you have many runs per component.
 
 ## Installation
 

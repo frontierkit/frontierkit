@@ -5,6 +5,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Added
+- **Hidden ground truth for the simulator** — `AgentExecutor(ground_truth=registry)` draws simulated success, latency and cost from a separate registry of true values, looked up by component name, instead of from the declared metadata. The synthesizer and calibration never read it, so a closed loop can be tested for convergence on values it was not told. Components missing from the ground truth behave as declared; combining `ground_truth` with `backend` raises `ValueError`
+
+### Changed
+- `examples/closed_loop.py` now starts from a registry that is wrong about four components and reports declared vs calibrated vs true values. Measured (4 iterations, alpha=0.4, seed 42): `retrieval_speedster` reliability 0.78 → 0.542 (truth 0.55), `retrieval_budget` 0.82 → 0.908 (0.95), `generation_balanced` latency 180 → 301.9 ms (320), `verification_reliable` cost 0.006 → 0.0086 (0.009). Mean absolute error over all components falls for latency (11.67 → 1.51 ms) and cost (2.5e-4 → 3.2e-5) and **rises for reliability (0.030 → 0.041)**: the fixed-alpha blend adds sampling noise to correctly declared components
+- README: the closed-loop demo figures are replaced by the hidden-truth results above
+
+### Fixed
+- `CITATION.cff` reported version 0.5.0; it now matches the released 0.7.0
+
 ### Removed
 - Python 3.9 support. 3.9 is end-of-life and no longer available on GitHub's current Ubuntu runners; `requires-python` is now `>=3.10` and CI tests 3.10–3.12
 
