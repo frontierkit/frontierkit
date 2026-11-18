@@ -3,7 +3,7 @@
 All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
-## [Unreleased]
+## [0.8.0] - 2026-11-18
 
 ### Added
 - **Hidden ground truth for the simulator** — `AgentExecutor(ground_truth=registry)` draws simulated success, latency and cost from a separate registry of true values, looked up by component name, instead of from the declared metadata. The synthesizer and calibration never read it, so a closed loop can be tested for convergence on values it was not told. Components missing from the ground truth behave as declared; combining `ground_truth` with `backend` raises `ValueError`
@@ -13,7 +13,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - README: the closed-loop demo figures are replaced by the hidden-truth results above
 
 ### Fixed
-- `CITATION.cff` reported version 0.5.0; it now matches the released 0.7.0
+- `CITATION.cff` reported version 0.5.0; it now tracks the current release
 
 ### Removed
 - Python 3.9 support. 3.9 is end-of-life and no longer available on GitHub's current Ubuntu runners; `requires-python` is now `>=3.10` and CI tests 3.10–3.12
