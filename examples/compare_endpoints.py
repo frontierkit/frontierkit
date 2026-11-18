@@ -4,18 +4,18 @@ Any vendor or local server that accepts OpenAI-style chat-completions
 requests works: set its key in the environment and the script scores it
 on three short questions, reporting measured quality and latency.
 
-Set one or both keys, then run from the repo root:
+Set any of these keys, then run from the repo root:
 
-    export SAIA_API_KEY=...      # GWDG SAIA / Chat AI
-    export NVIDIA_API_KEY=...    # NVIDIA API catalog
+    export SAIA_API_KEY=...        # GWDG SAIA / Chat AI
+    export NVIDIA_API_KEY=...      # NVIDIA API catalog
+    export ANTHROPIC_API_KEY=...   # Claude, through its OpenAI-compatible endpoint
     pip install "chatcortex[real]"
     python examples/compare_endpoints.py
 
-Optional: SAIA_MODEL and NVIDIA_MODEL choose the model on each.
+Optional: SAIA_MODEL, NVIDIA_MODEL and ANTHROPIC_MODEL choose the model.
 
 Each provider gets 4 small requests (one connection check, three
-questions, at most 60 output tokens each). Without any key the script
-prints this setup card and exits 0.
+questions). Without any key the script prints this setup card and exits 0.
 """
 
 import os
@@ -33,7 +33,13 @@ from chatcortex import (
     evaluate_pipelines,
 )
 
-# name, key variable, base URL, model variable, default model
+# Vendors differ in which request options they accept, so each row
+# carries its own. Current Claude models reject a temperature below 1 and
+# think before answering, so that row sets no temperature and leaves room
+# for the answer.
+SHORT_ANSWER = {"max_tokens": 60, "temperature": 0}
+
+# name, key variable, base URL, model variable, default model, request options
 PROVIDERS = [
     (
         "saia",
@@ -41,6 +47,7 @@ PROVIDERS = [
         "https://chat-ai.academiccloud.de/v1",
         "SAIA_MODEL",
         "meta-llama-3.1-8b-instruct",
+        SHORT_ANSWER,
     ),
     (
         "nvidia",
@@ -48,6 +55,15 @@ PROVIDERS = [
         "https://integrate.api.nvidia.com/v1",
         "NVIDIA_MODEL",
         "meta/llama-3.1-8b-instruct",
+        SHORT_ANSWER,
+    ),
+    (
+        "claude",
+        "ANTHROPIC_API_KEY",
+        "https://api.anthropic.com/v1/",
+        "ANTHROPIC_MODEL",
+        "claude-opus-5-5",
+        {"max_tokens": 1024},
     ),
 ]
 
@@ -85,7 +101,8 @@ def main():
     registry = CapabilityRegistry()
     routes = {}
     models = {}
-    for index, (name, key_var, base_url, model_var, default_model) in enumerate(PROVIDERS):
+    for index, row in enumerate(PROVIDERS):
+        name, key_var, base_url, model_var, default_model, options = row
         api_key = os.environ.get(key_var)
         if not api_key:
             continue
@@ -95,7 +112,7 @@ def main():
                 model=model,
                 base_url=base_url,
                 api_key=api_key,
-                request_options={"max_tokens": 60, "temperature": 0},
+                request_options=options,
             )
         except ImportError as exc:
             print(exc)
