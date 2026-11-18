@@ -8,11 +8,19 @@ Set any of these keys, then run from the repo root:
 
     export SAIA_API_KEY=...        # GWDG SAIA / Chat AI
     export NVIDIA_API_KEY=...      # NVIDIA API catalog
+    export GROQ_API_KEY=...        # Groq
+    export OPENROUTER_API_KEY=...  # OpenRouter (default model is paid)
     export ANTHROPIC_API_KEY=...   # Claude, through its OpenAI-compatible endpoint
     pip install "chatcortex[real]"
     python examples/compare_endpoints.py
 
-Optional: SAIA_MODEL, NVIDIA_MODEL and ANTHROPIC_MODEL choose the model.
+Optional: SAIA_MODEL, NVIDIA_MODEL, GROQ_MODEL, OPENROUTER_MODEL and
+ANTHROPIC_MODEL choose the model.
+
+Two rows cost money. OpenRouter's default, Claude Haiku 5.5, costs well
+under one cent per run; Claude Opus 5.5 direct costs at most about eight
+cents. Cost is measured from reported token usage for those defaults; for
+a model you choose yourself, add its price to the row to measure it.
 
 Each provider gets 4 small requests (one connection check, three
 questions). A provider that fails the check is skipped, and the script
@@ -34,6 +42,7 @@ from chatcortex import (
     TaskSpecification,
     evaluate_pipelines,
 )
+from chatcortex.adapters.openai_backend import TokenPrice
 
 # Vendors differ in which request options they accept, so each row
 # carries its own. Current Claude models reject a temperature below 1 and
@@ -44,7 +53,12 @@ from chatcortex import (
 REQUEST_TIMEOUT_S = 120
 SHORT_ANSWER = {"max_tokens": 300, "temperature": 0, "timeout": REQUEST_TIMEOUT_S}
 
-# name, key variable, base URL, model variable, default model, request options
+# Free tiers are marked FREE. Paid rows list prices in dollars per million
+# tokens, checked against each vendor's published prices on 2026-11-18.
+FREE = "free"
+
+# name, key variable, base URL, model variable, default model,
+# request options, prices
 PROVIDERS = [
     (
         "saia",
@@ -53,6 +67,7 @@ PROVIDERS = [
         "SAIA_MODEL",
         "meta-llama-3.1-8b-instruct",
         SHORT_ANSWER,
+        FREE,
     ),
     (
         "nvidia",
@@ -61,6 +76,25 @@ PROVIDERS = [
         "NVIDIA_MODEL",
         "google/gemma-4-31b-it",
         SHORT_ANSWER,
+        FREE,
+    ),
+    (
+        "groq",
+        "GROQ_API_KEY",
+        "https://api.groq.com/openai/v1",
+        "GROQ_MODEL",
+        "llama-3.3-70b-versatile",
+        SHORT_ANSWER,
+        FREE,
+    ),
+    (
+        "openrouter",
+        "OPENROUTER_API_KEY",
+        "https://openrouter.ai/api/v1",
+        "OPENROUTER_MODEL",
+        "anthropic/claude-haiku-5.5",
+        {"max_tokens": 1024, "timeout": REQUEST_TIMEOUT_S},
+        {"anthropic/claude-haiku-5.5": TokenPrice(0.10, 0.50)},
     ),
     (
         "claude",
@@ -69,6 +103,7 @@ PROVIDERS = [
         "ANTHROPIC_MODEL",
         "claude-opus-5-5",
         {"max_tokens": 1024, "timeout": REQUEST_TIMEOUT_S},
+        {"claude-opus-5-5": TokenPrice(4.00, 20.00)},
     ),
 ]
 
@@ -99,7 +134,7 @@ def component(name, cost, latency):
 
 def suggest_models(row, limit=40):
     """After a failed check, print the model names this key can use."""
-    name, key_var, base_url, model_var, _default_model, _options = row
+    name, key_var, base_url, model_var = row[:4]
     try:
         import openai
 
@@ -124,8 +159,9 @@ def main():
         OpenAIBackend = None
 
     configured = {}
+    cost_labels = {}
     for index, row in enumerate(PROVIDERS):
-        name, key_var, base_url, model_var, default_model, options = row
+        name, key_var, base_url, model_var, default_model, options, prices = row
         api_key = os.environ.get(key_var)
         if not api_key:
             continue
@@ -136,6 +172,7 @@ def main():
                 base_url=base_url,
                 api_key=api_key,
                 request_options=options,
+                prices=None if prices == FREE else prices,
             )
         except ImportError as exc:
             print(exc)
@@ -143,6 +180,12 @@ def main():
         # Distinct placeholder values so no pipeline is discarded before
         # it has been measured.
         metadata = component(name, cost=0.001 * (index + 1), latency=1000 - 100 * index)
+        if prices == FREE:
+            cost_labels[name] = "free tier"
+        elif model in prices:
+            cost_labels[name] = "measured"
+        else:
+            cost_labels[name] = "not priced"
         configured[name] = (provider_backend, metadata, model, row)
 
     if not configured:
@@ -154,7 +197,7 @@ def main():
     routes = {}
     models = {}
     for name, (provider_backend, metadata, model, row) in configured.items():
-        print(f"  {name:8s} {model:34s}", end=" ", flush=True)
+        print(f"  {name:10s} {model:34s}", end=" ", flush=True)
         probe = provider_backend(metadata, EXAMPLES[0].input)
         status = "ok" if probe.success else "FAILED"
         print(f"{status}  {probe.latency_ms:7.0f} ms", flush=True)
@@ -193,12 +236,20 @@ def main():
 
     print()
     print(f"{len(EXAMPLES)} questions per provider")
-    print(f"  {'provider':8s} {'model':34s} quality  success  mean latency")
+    print(
+        f"  {'provider':10s} {'model':34s} quality  success  mean latency  "
+        "cost per question"
+    )
     for evaluation in sorted(evaluations, key=lambda e: -e.quality):
         name = evaluation.components[0]
+        cost = (
+            f"${evaluation.cost:.6f}"
+            if cost_labels[name] == "measured"
+            else cost_labels[name]
+        )
         print(
-            f"  {name:8s} {models[name]:34s} {evaluation.quality:7.2f}  "
-            f"{evaluation.success_rate:7.2f}  {evaluation.latency_ms:9.0f} ms"
+            f"  {name:10s} {models[name]:34s} {evaluation.quality:7.2f}  "
+            f"{evaluation.success_rate:7.2f}  {evaluation.latency_ms:9.0f} ms  {cost}"
         )
     return 0
 

@@ -143,8 +143,8 @@ backend = RoutedBackend({
 
 `examples/compare_endpoints.py` scores two providers on the same three
 questions and prints measured quality and latency for each. It reads
-`SAIA_API_KEY`, `NVIDIA_API_KEY` and `ANTHROPIC_API_KEY` from the environment
-and runs whichever are set; edit its `PROVIDERS` table to use others. Request
+`SAIA_API_KEY`, `NVIDIA_API_KEY`, `GROQ_API_KEY`, `OPENROUTER_API_KEY` and
+`ANTHROPIC_API_KEY` from the environment and runs whichever are set; edit its `PROVIDERS` table to use others. Request
 options are set per provider, because vendors differ in what they accept:
 current Claude models, for example, reject a `temperature` below 1.
 
