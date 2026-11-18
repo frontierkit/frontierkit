@@ -56,7 +56,7 @@ PROVIDERS = [
         "NVIDIA_API_KEY",
         "https://integrate.api.nvidia.com/v1",
         "NVIDIA_MODEL",
-        "openai/gpt-oss-120b",
+        "google/gemma-4-31b-it",
         SHORT_ANSWER,
     ),
     (
