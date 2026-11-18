@@ -181,3 +181,79 @@ def test_alpha_nonfinite_raises_instead_of_silent_nan_metadata():
     for alpha in (float("nan"), float("inf"), float("-inf")):
         with pytest.raises(ValueError):
             calibrate(registry, [], alpha=alpha)
+
+
+# --- evidence-weighted calibration (prior_strength) -----------------------
+
+
+def _single(reliability=0.5, latency=100.0, cost=0.01):
+    from chatcortex.registry.capability_registry import CapabilityRegistry
+    from chatcortex.registry.metadata import ComponentMetadata
+
+    registry = CapabilityRegistry()
+    registry.register(
+        ComponentMetadata(
+            name="c",
+            component_type="tool",
+            capabilities=["x"],
+            cost_per_call=cost,
+            avg_latency_ms=latency,
+            reliability_score=reliability,
+            privacy_level="internal",
+        )
+    )
+    return registry
+
+
+def _traces(successes, failures, latency=100.0, cost=0.01):
+    outcomes = [True] * successes + [False] * failures
+    return [
+        {"component": "c", "latency_ms": latency, "cost": cost, "success": ok}
+        for ok in outcomes
+    ]
+
+
+def test_prior_strength_weighs_by_record_count():
+    # prior 0.5 counted as 10 observations, then 10 successes observed:
+    # (10 * 0.5 + 10 * 1.0) / 20 = 0.75
+    from chatcortex.telemetry.calibration import calibrate
+
+    result = calibrate(_single(), _traces(10, 0), prior_strength=10)
+    assert result.get("c").reliability_score == pytest.approx(0.75)
+
+
+def test_prior_strength_moves_less_on_little_evidence():
+    from chatcortex.telemetry.calibration import calibrate
+
+    few = calibrate(_single(), _traces(2, 0), prior_strength=20)
+    many = calibrate(_single(), _traces(200, 0), prior_strength=20)
+    assert few.get("c").reliability_score == pytest.approx(0.5 + 0.5 * 2 / 22)
+    assert many.get("c").reliability_score == pytest.approx(0.5 + 0.5 * 200 / 220)
+    assert few.get("c").reliability_score < many.get("c").reliability_score
+
+
+def test_prior_strength_applies_to_latency_and_cost():
+    from chatcortex.telemetry.calibration import calibrate
+
+    result = calibrate(
+        _single(latency=100.0, cost=0.01),
+        _traces(5, 0, latency=300.0, cost=0.03),
+        prior_strength=5,
+    )
+    assert result.get("c").avg_latency_ms == pytest.approx(200.0)
+    assert result.get("c").cost_per_call == pytest.approx(0.02)
+
+
+def test_prior_strength_zero_replaces_the_prior_and_overrides_alpha():
+    from chatcortex.telemetry.calibration import calibrate
+
+    result = calibrate(_single(), _traces(3, 1), alpha=0.0, prior_strength=0)
+    assert result.get("c").reliability_score == pytest.approx(0.75)
+
+
+@pytest.mark.parametrize("bad", [-1.0, float("nan"), float("inf")])
+def test_prior_strength_invalid_raises(bad):
+    from chatcortex.telemetry.calibration import calibrate
+
+    with pytest.raises(ValueError, match="prior_strength"):
+        calibrate(_single(), _traces(1, 0), prior_strength=bad)

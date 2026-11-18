@@ -8,6 +8,13 @@ values with the declared priors::
     new = alpha * empirical + (1 - alpha) * prior
 
 Components with no matching records keep their prior values untouched.
+
+A fixed ``alpha`` trusts three records as much as three hundred. Pass
+``prior_strength`` instead to weigh evidence by how much of it there is:
+the declared value counts as that many pseudo-observations, so each
+component's weight on its empirical mean is ``n / (n + prior_strength)``
+for its ``n`` records. A component seen a few times barely moves; one
+seen often converges on what was measured.
 The result is deterministic for a given input: records are grouped by
 component name and components are visited in registry order (which is
 registration order and therefore stable).
@@ -26,7 +33,7 @@ are ignored rather than raising.
 import dataclasses
 import math
 from collections import defaultdict
-from typing import Dict, List
+from typing import Dict, List, Optional
 
 from ..graph.node_ids import component_name_from_node_id
 from ..registry.capability_registry import CapabilityRegistry
@@ -51,6 +58,7 @@ def calibrate(
     registry: CapabilityRegistry,
     traces: List[Record],
     alpha: float = 0.3,
+    prior_strength: Optional[float] = None,
 ) -> CapabilityRegistry:
     """Blend empirical trace statistics into component metadata.
 
@@ -62,7 +70,14 @@ def calibrate(
         alpha: Blend weight on the empirical values, in ``[0, 1]``; 0
             keeps the priors, 1 replaces them, the default 0.3 leans
             toward the declared values. Non-finite values are rejected
-            like any out-of-range value.
+            like any out-of-range value. Ignored when
+            ``prior_strength`` is given.
+        prior_strength: Evidence-weighted mode. The declared value counts
+            as this many pseudo-observations, so a component with ``n``
+            records gets weight ``n / (n + prior_strength)`` on its
+            empirical mean. Must be finite and ``>= 0``; ``0`` replaces
+            the prior outright for any traced component. ``None``
+            (default) keeps the fixed-``alpha`` blend.
 
     Returns:
         A NEW registry; the input registry and its frozen metadata are
@@ -74,12 +89,19 @@ def calibrate(
         shared unchanged.
 
     Raises:
-        ValueError: If ``alpha`` is outside ``[0.0, 1.0]`` or not finite.
+        ValueError: If ``alpha`` is outside ``[0.0, 1.0]`` or not finite,
+            or ``prior_strength`` is negative or not finite.
     """
     # NaN passes naive range comparisons, so a missing finite check would
     # let NaN flow into metadata and propagate silently through blends.
     if not math.isfinite(alpha) or alpha < 0.0 or alpha > 1.0:
         raise ValueError(f"alpha must be in [0.0, 1.0], {alpha!r} given")
+    if prior_strength is not None and (
+        not math.isfinite(prior_strength) or prior_strength < 0.0
+    ):
+        raise ValueError(
+            f"prior_strength must be a finite number >= 0, {prior_strength!r} given"
+        )
 
     all_metadata = registry.list_all()
     name_to_index = {metadata.name: idx for idx, metadata in enumerate(all_metadata)}
@@ -104,11 +126,13 @@ def calibrate(
         empirical_latency = sum(r["latency_ms"] for r in records) / n
         empirical_cost = sum(r["cost"] for r in records) / n
 
+        weight = alpha if prior_strength is None else n / (n + prior_strength)
+
         updated = dataclasses.replace(
             prior,
-            reliability_score=_blend(alpha, empirical_success, prior.reliability_score),
-            avg_latency_ms=_blend(alpha, empirical_latency, prior.avg_latency_ms),
-            cost_per_call=_blend(alpha, empirical_cost, prior.cost_per_call),
+            reliability_score=_blend(weight, empirical_success, prior.reliability_score),
+            avg_latency_ms=_blend(weight, empirical_latency, prior.avg_latency_ms),
+            cost_per_call=_blend(weight, empirical_cost, prior.cost_per_call),
         )
         calibrated.update(prior.name, updated)
     return calibrated
