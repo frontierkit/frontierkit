@@ -281,3 +281,55 @@ def test_loop_rejects_bad_inputs_before_any_execution():
             )
         assert "given" in str(raised.value)
         assert backend.calls == 0  # validation preceded every execution
+
+
+# --- evidence-weighted loop (prior_strength) ------------------------------
+
+
+def test_prior_strength_loop_calibrates_declared_registry_from_all_traces():
+    from chatcortex.telemetry.calibration import calibrate
+
+    registry, task = _demo_setup()
+    records = run_closed_loop(
+        registry=registry,
+        task=task,
+        synthesizer=lambda reg: BeamSynthesizer(reg, beam_width=3),
+        executor=AgentExecutor(mode="probabilistic", seed=11),
+        iterations=3,
+        prior_strength=15,
+    )
+
+    every_trace = [trace for record in records for trace in record.traces]
+    expected = calibrate(registry, every_trace, prior_strength=15)
+    assert records[-1].registry.to_dict() == expected.to_dict()
+
+
+def test_prior_strength_loop_is_deterministic():
+    def run():
+        registry, task = _demo_setup()
+        return [
+            record.to_dict()
+            for record in run_closed_loop(
+                registry=registry,
+                task=task,
+                synthesizer=lambda reg: BeamSynthesizer(reg, beam_width=3),
+                executor=AgentExecutor(mode="probabilistic", seed=5),
+                iterations=3,
+                prior_strength=20,
+            )
+        ]
+
+    assert run() == run()
+
+
+@pytest.mark.parametrize("bad", [-0.5, float("nan")])
+def test_prior_strength_loop_rejects_invalid_values_before_running(bad):
+    registry, task = _demo_setup()
+    with pytest.raises(ValueError, match="prior_strength"):
+        run_closed_loop(
+            registry=registry,
+            task=task,
+            synthesizer=BeamSynthesizer,
+            executor=AgentExecutor(),
+            prior_strength=bad,
+        )

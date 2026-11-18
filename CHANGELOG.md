@@ -3,6 +3,14 @@
 All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased]
+
+### Added
+- **Evidence-weighted calibration** — `calibrate(..., prior_strength=n0)` treats the declared value as `n0` pseudo-observations, so a component with `n` records gets weight `n / (n + n0)` on its empirical mean instead of a fixed `alpha`. `run_closed_loop(..., prior_strength=n0)` recalibrates the declared registry from all traces collected so far each round. Defaults are unchanged: without `prior_strength` both functions behave as before
+
+### Changed
+- `examples/closed_loop.py` runs 16 iterations with `prior_strength=20` and adds a 20-seed comparison of mean reliability error against the hidden ground truth: declared registry 0.030; fixed `alpha=0.4` 0.066 (beats declared in 0/20 runs); `prior_strength=20` 0.024 (17/20). Measured separately at 4 iterations, `prior_strength=20` averages 0.033 and does not yet beat the declared values
+
 ## [0.8.0] - 2026-11-18
 
 ### Added

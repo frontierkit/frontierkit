@@ -24,6 +24,12 @@ Calibration feedback is *iterative*: each iteration blends only the
 latest traces into the previous iteration's calibration, so priors
 compound toward empirical values across iterations at roughly
 ``1 - (1 - alpha) ** k`` after ``k`` iterations.
+
+Evidence-weighted mode: with ``prior_strength`` set, every iteration
+instead recalibrates the *declared* registry from all traces collected so
+far, weighing each component by its record count (see ``calibrate``). The
+estimate for a component is then its declared value pulled toward the
+mean of everything observed, by exactly as much as the evidence supports.
 """
 
 import math
@@ -104,6 +110,7 @@ def run_closed_loop(
     executor: AgentExecutor,
     iterations: int = 3,
     alpha: float = 0.3,
+    prior_strength: Optional[float] = None,
     budget: Optional[SynthesisBudget] = None,
     candidates_per_iteration: Optional[int] = None,
 ) -> List[LoopIteration]:
@@ -124,6 +131,11 @@ def run_closed_loop(
         alpha: Blend weight passed to :func:`calibrate`; validated, so
             every round only executes under a valid blend. Non-finite
             values are rejected like any out-of-range value.
+        prior_strength: Evidence-weighted calibration. When given, each
+            round calibrates the declared ``registry`` from all traces
+            so far with weight ``n / (n + prior_strength)`` per
+            component, and ``alpha`` is ignored. Must be finite and
+            ``>= 0``.
         candidates_per_iteration: Execute only the first ``N`` frontier
             members (objective-sorted, deterministic) instead of all of
             them; useful when executions are expensive. Must be ``>= 1``
@@ -158,7 +170,14 @@ def run_closed_loop(
         )
     if not math.isfinite(alpha) or alpha < 0.0 or alpha > 1.0:
         raise ValueError(f"alpha must be in [0.0, 1.0], {alpha!r} given")
+    if prior_strength is not None and (
+        not math.isfinite(prior_strength) or prior_strength < 0.0
+    ):
+        raise ValueError(
+            f"prior_strength must be a finite number >= 0, {prior_strength!r} given"
+        )
 
+    all_traces: List[Dict[str, Any]] = []
     records: List[LoopIteration] = []
     current = registry
     for iteration in range(iterations):
@@ -184,7 +203,13 @@ def run_closed_loop(
                 executor.execute(candidate.graph).telemetry.records
             )
 
-        calibrated = calibrate(current, traces, alpha=alpha)
+        if prior_strength is None:
+            calibrated = calibrate(current, traces, alpha=alpha)
+        else:
+            all_traces.extend(traces)
+            calibrated = calibrate(
+                registry, all_traces, prior_strength=prior_strength
+            )
         updated = [
             prior.name
             for prior in current.list_all()

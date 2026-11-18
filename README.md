@@ -13,16 +13,24 @@ Instead of manually wiring LLM pipelines (`retrieval → LLM → verifier → to
 Task Specification → Architecture Search → Pareto-Optimal Architectures
 ```
 
-**ChatCortex re-synthesizes your architecture from what was measured.** Execution telemetry is calibrated back into the component registry, so every new synthesis round runs against observed behavior instead of declared guesses. `examples/closed_loop.py` tests this offline against a **hidden ground truth**: the starting registry is wrong about four components, and the simulator draws outcomes from true values the loop never sees. After four iterations (alpha 0.4, seed 42):
+**ChatCortex re-synthesizes your architecture from what was measured.** Execution telemetry is calibrated back into the component registry, so every new synthesis round runs against observed behavior instead of declared guesses. `examples/closed_loop.py` tests this offline against a **hidden ground truth**: the starting registry is wrong about four components, and the simulator draws outcomes from true values the loop never sees. After sixteen iterations with evidence-weighted calibration (`prior_strength=20`, seed 42, 677 probes):
 
 | Component | Field | Declared | Calibrated | Truth |
 |---|---|---|---|---|
-| `retrieval_speedster` | reliability | 0.78 | 0.542 | 0.55 |
-| `retrieval_budget` | reliability | 0.82 | 0.908 | 0.95 |
-| `generation_balanced` | latency (ms) | 180 | 301.9 | 320 |
-| `verification_reliable` | cost per call | 0.006 | 0.0086 | 0.009 |
+| `retrieval_speedster` | reliability | 0.78 | 0.707 | 0.55 |
+| `retrieval_budget` | reliability | 0.82 | 0.945 | 0.95 |
+| `generation_balanced` | latency (ms) | 180 | 281.1 | 320 |
+| `verification_reliable` | cost per call | 0.006 | 0.0080 | 0.009 |
 
-> **What this does and does not show.** The mis-declared values move toward the truth, and mean error across all twelve components falls for latency (11.67 → 1.51 ms) and cost. Reliability is the exception: its mean error *rises* (0.030 → 0.041), because a handful of pass/fail probes is a noisy measurement. Treat calibrated reliability as approximate until you have many runs per component.
+One seed is one draw, so the example also repeats the run over 20 seeds and reports mean reliability error across all twelve components:
+
+| Calibration rule | Mean reliability error | Runs that beat the declared registry |
+|---|---|---|
+| None (declared values) | 0.030 | n/a |
+| Fixed `alpha=0.4` | 0.066 | 0 of 20 |
+| Evidence-weighted, `prior_strength=20` | 0.024 | 17 of 20 |
+
+> **What this does and does not show.** Evidence-weighted calibration improves on the declared registry given enough probes; a fixed blend weight makes reliability worse. It needs the evidence: in the same test at four iterations it does not yet beat the declared values on average. A component that drops off the frontier stops being probed, which is why `retrieval_speedster` above is still far from its true value.
 
 ## Installation
 
