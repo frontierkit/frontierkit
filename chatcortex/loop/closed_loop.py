@@ -33,9 +33,14 @@ mean of everything observed, by exactly as much as the evidence supports.
 """
 
 import math
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any, Callable, Dict, List, Optional, Union
 
+from chatcortex.evaluation.eval_set import (
+    EvalSet,
+    PipelineEvaluation,
+    evaluate_pipelines,
+)
 from chatcortex.execution.executor import AgentExecutor
 from chatcortex.registry.capability_registry import CapabilityRegistry
 from chatcortex.synthesis.base import Synthesizer
@@ -64,6 +69,9 @@ class LoopIteration:
     traces: List[Dict[str, Any]]
     registry: CapabilityRegistry
     prior_registry: CapabilityRegistry
+    # One entry per executed pipeline when the loop ran with an eval_set;
+    # empty otherwise.
+    evaluations: List[PipelineEvaluation] = field(default_factory=list)
 
     def to_dict(self) -> dict:
         """JSON-safe record including the calibrated registry snapshot."""
@@ -76,6 +84,7 @@ class LoopIteration:
             "updated_components": list(self.updated_components),
             "traces": [dict(trace) for trace in self.traces],
             "registry_snapshot": self.registry.to_dict(),
+            "evaluations": [e.to_dict() for e in self.evaluations],
         }
 
 
@@ -111,6 +120,7 @@ def run_closed_loop(
     iterations: int = 3,
     alpha: float = 0.3,
     prior_strength: Optional[float] = None,
+    eval_set: Optional[EvalSet] = None,
     budget: Optional[SynthesisBudget] = None,
     candidates_per_iteration: Optional[int] = None,
 ) -> List[LoopIteration]:
@@ -136,6 +146,11 @@ def run_closed_loop(
             so far with weight ``n / (n + prior_strength)`` per
             component, and ``alpha`` is ignored. Must be finite and
             ``>= 0``.
+        eval_set: Example inputs and a scorer. When given, every selected
+            pipeline is run on every example (the executor needs a
+            backend), all of those runs feed calibration, and each
+            iteration's ``evaluations`` holds the measured quality, cost
+            and latency per pipeline.
         candidates_per_iteration: Execute only the first ``N`` frontier
             members (objective-sorted, deterministic) instead of all of
             them; useful when executions are expensive. Must be ``>= 1``
@@ -198,10 +213,16 @@ def run_closed_loop(
             )[:candidates_per_iteration]
 
         traces: List[Dict[str, Any]] = []
-        for candidate in selected:
-            traces.extend(
-                executor.execute(candidate.graph).telemetry.records
-            )
+        evaluations: List[PipelineEvaluation] = []
+        if eval_set is None:
+            for candidate in selected:
+                traces.extend(
+                    executor.execute(candidate.graph).telemetry.records
+                )
+        else:
+            evaluations = evaluate_pipelines(selected, executor, eval_set)
+            for evaluation in evaluations:
+                traces.extend(evaluation.traces)
 
         if prior_strength is None:
             calibrated = calibrate(current, traces, alpha=alpha)
@@ -234,6 +255,7 @@ def run_closed_loop(
                 traces=[dict(trace) for trace in traces],
                 registry=calibrated,
                 prior_registry=current,
+                evaluations=evaluations,
             )
         )
         current = calibrated

@@ -106,9 +106,90 @@ export OPENAI_API_KEY=...   # every reply spends your credits
 python examples/closed_loop_real.py
 ```
 
+Give the backend your prices and each call is costed from the token usage the
+API reports, instead of the declared `cost_per_call`:
+
+```python
+from chatcortex.adapters.openai_backend import OpenAIBackend, TokenPrice
+
+backend = OpenAIBackend(
+    model="your-model",
+    prices={"your-model": TokenPrice(input_per_million=2.0, output_per_million=8.0)},
+)
+```
+
+Prices are yours to supply because they are model-specific and change over
+time. A model without a price falls back to the declared cost.
+
 To search over your own components, build a `CapabilityRegistry` and register
 `ComponentMetadata` describing each model, tool, or verifier — see
 `examples/` for complete walkthroughs.
+
+## Run your own functions
+
+Back each component with a plain Python function and the executor runs a
+synthesized pipeline for real: every function receives the previous step's
+output and returns its own.
+
+```python
+from chatcortex import AgentExecutor, CallableBackend
+
+backend = CallableBackend({
+    "retrieve_keyword": lambda question: search(question),
+    "answer_short": lambda passages: draft(passages),
+    "verify_grounded": lambda answer: check(answer),
+})
+backend.missing(registry)   # [] when every registry component is covered
+
+result = AgentExecutor(backend=backend).execute(arch.graph, task_input="your question")
+result.output               # what the last step returned
+result.success              # False if any step raised or reported failure
+```
+
+Latency is measured around each call. A function that raises, or returns
+`StepResult(output=None, success=False)`, is recorded as a failed step and
+stops the pipeline. Cost is the declared `cost_per_call` unless the function
+returns `StepResult(output, cost=...)`. A complete runnable version:
+
+```bash
+python examples/callable_pipeline.py
+```
+
+## Score pipelines on your own examples
+
+Declared numbers say nothing about whether a pipeline's answers are any good.
+Give ChatCortex example inputs and a scoring function, and it runs each
+pipeline on every example and reports measured quality, cost and latency.
+
+```python
+from chatcortex import EvalSet, Example, evaluate_pipelines, quality_frontier
+
+eval_set = EvalSet(
+    examples=[
+        Example("What is the boiling point of water?", expected="100"),
+        Example("How quickly does light travel?", expected="299,792"),
+    ],
+    scorer=lambda output, expected: expected in str(output),   # bool or 0..1
+)
+
+evaluations = evaluate_pipelines(frontier, executor, eval_set)
+best = quality_frontier(evaluations)[0]     # highest measured quality first
+best.components, best.quality, best.cost, best.success_rate
+```
+
+A run that fails part-way scores 0. `quality_frontier` keeps the pipelines not
+beaten on measured cost, latency and quality. In `examples/scored_pipeline.py`
+the three frontier pipelines score 1.00, 0.00 and 0.00 on four questions,
+although their declared reliabilities are 0.91, 0.85 and 0.71.
+
+Only pipelines the synthesizer proposes are scored. Pass `eval_set=` to
+`run_closed_loop` and every example run also feeds calibration, so a component
+that was declared better than it is loses its place and pipelines it was hiding
+get proposed and scored in later rounds.
+
+```bash
+python examples/scored_pipeline.py
+```
 
 ## Registry packs
 
