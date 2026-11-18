@@ -21,6 +21,7 @@ from .evaluation.eval_set import (
 )
 from .execution.callable_backend import CallableBackend, StepResult
 from .execution.executor import AgentExecutor, BackendConfigurationError
+from .execution.routed_backend import RoutedBackend
 from .graph.agent_graph import AgentGraph
 from .loop import LoopIteration, run_closed_loop
 from .registry.capability_registry import CapabilityRegistry
@@ -52,6 +53,7 @@ __all__ = [
     "AgentExecutor",
     "BackendConfigurationError",
     "CallableBackend",
+    "RoutedBackend",
     "StepResult",
     "EvalSet",
     "Example",

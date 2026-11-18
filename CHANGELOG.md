@@ -3,6 +3,13 @@
 All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased]
+
+### Added
+- **OpenAI-compatible endpoints** — `OpenAIBackend(base_url=..., api_key=...)` points the backend at any vendor or local server that accepts chat-completions requests, with no new dependency. `request_options` adds keyword arguments such as `max_tokens` or `temperature` to every request
+- **`RoutedBackend({component name: backend}, default=...)`** sends each component to its own backend, so one search can mix vendors and local functions; `unrouted(registry)` lists components without a route, and running one raises `BackendConfigurationError`
+- `examples/compare_endpoints.py` — scores two providers on the same three questions and reports measured quality and latency; reads `SAIA_API_KEY` and `NVIDIA_API_KEY`, and prints a setup card when neither is set
+
 ## [0.9.0] - 2026-11-18
 
 ### Added
