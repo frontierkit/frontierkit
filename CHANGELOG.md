@@ -3,7 +3,7 @@
 All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
-## [Unreleased]
+## [0.9.0] - 2026-11-18
 
 ### Added
 - **Cost from token usage** — `OpenAIBackend(prices={model: TokenPrice(input_per_million, output_per_million)})` costs each call from the `prompt_tokens` and `completion_tokens` the API reports. A model without a price, or a response without usage, falls back to the component's declared `cost_per_call`; a call that raises records zero cost, as before
