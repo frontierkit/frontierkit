@@ -121,6 +121,33 @@ backend = OpenAIBackend(
 Prices are yours to supply because they are model-specific and change over
 time. A model without a price falls back to the declared cost.
 
+### Other vendors and local servers
+
+Many model providers and local servers accept the same chat-completions
+request format. Point the backend at one with `base_url` and `api_key`; no
+extra dependency is needed. `RoutedBackend` sends each component to its own
+backend, so one search can compare models from several vendors:
+
+```python
+import os
+from chatcortex import RoutedBackend
+from chatcortex.adapters.openai_backend import OpenAIBackend
+
+backend = RoutedBackend({
+    "writer_a": OpenAIBackend(model="model-a", base_url="https://vendor-a.example/v1",
+                              api_key=os.environ["VENDOR_A_KEY"]),
+    "writer_b": OpenAIBackend(model="model-b", base_url="https://vendor-b.example/v1",
+                              api_key=os.environ["VENDOR_B_KEY"]),
+})
+```
+
+`examples/compare_endpoints.py` scores two providers on the same three
+questions and prints measured quality and latency for each. It reads
+`SAIA_API_KEY`, `NVIDIA_API_KEY` and `ANTHROPIC_API_KEY` from the environment
+and runs whichever are set; edit its `PROVIDERS` table to use others. Request
+options are set per provider, because vendors differ in what they accept:
+current Claude models, for example, reject a `temperature` below 1.
+
 To search over your own components, build a `CapabilityRegistry` and register
 `ComponentMetadata` describing each model, tool, or verifier — see
 `examples/` for complete walkthroughs.

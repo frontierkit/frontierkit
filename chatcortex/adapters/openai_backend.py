@@ -16,6 +16,11 @@ What is measured vs. declared:
   or a response without usage, the component's declared ``cost_per_call``
   is recorded instead. A call that raises records zero cost.
 
+Other vendors: many model providers and local servers accept the same
+chat-completions request format. Point the backend at one with
+``base_url`` (and ``api_key``) and it works unchanged, with no extra
+dependency.
+
 Component metadata stays pure: nothing here mutates it, calibration is
 the component that turns telemetry into updated metadata.
 """
@@ -64,6 +69,15 @@ class OpenAIBackend:
             call ran on has a price and the response reports token
             usage, the recorded cost is computed from that usage;
             otherwise the component's declared ``cost_per_call`` is used.
+        base_url: Root URL of an OpenAI-compatible endpoint, for example
+            another vendor's API or a local server. ``None`` uses the
+            SDK default (OpenAI, or ``OPENAI_BASE_URL``).
+        api_key: Key for that endpoint. ``None`` uses the SDK default
+            (``OPENAI_API_KEY``). Read it from the environment; do not
+            write keys into source files.
+        request_options: Extra keyword arguments sent with every
+            chat-completions request, such as ``{"max_tokens": 200,
+            "temperature": 0}``.
         client: Optional pre-built OpenAI client (or any object exposing
             ``chat.completions.create``). Meant for tests; when given,
             the ``openai`` package is never imported.
@@ -75,8 +89,17 @@ class OpenAIBackend:
         model_for: Optional[Callable[[ComponentMetadata], str]] = None,
         client: Optional[Any] = None,
         prices: Optional[Mapping[str, TokenPrice]] = None,
+        base_url: Optional[str] = None,
+        api_key: Optional[str] = None,
+        request_options: Optional[Mapping[str, Any]] = None,
     ):
         self._model = model
+        self._request_options = dict(request_options or {})
+        for reserved in ("model", "messages"):
+            if reserved in self._request_options:
+                raise ValueError(
+                    f"request_options cannot set '{reserved}'; the backend supplies it"
+                )
         self.model_for = model_for
         self._prices = dict(prices or {})
         for priced_model, price in self._prices.items():
@@ -94,7 +117,12 @@ class OpenAIBackend:
                     "OpenAIBackend requires the optional 'openai' dependency; "
                     "install it with: pip install chatcortex[real]"
                 ) from exc
-            self._client = openai.OpenAI()
+            connection = {}
+            if base_url is not None:
+                connection["base_url"] = base_url
+            if api_key is not None:
+                connection["api_key"] = api_key
+            self._client = openai.OpenAI(**connection)
 
     def _model_for_component(self, metadata: ComponentMetadata) -> str:
         if self.model_for is not None:
@@ -122,6 +150,7 @@ class OpenAIBackend:
                         "content": prompt,
                     }
                 ],
+                **self._request_options,
             )
         except Exception as exc:  # network/HTTP/key errors are probe failures
             latency_ms = (time.perf_counter() - started) * 1000.0

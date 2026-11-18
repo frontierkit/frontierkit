@@ -48,6 +48,13 @@ jobs:
       - name: Run scored pipeline example
         run: python examples/scored_pipeline.py
 
+      - name: Run compare endpoints example (keyless path)
+        env:
+          SAIA_API_KEY: ""
+          NVIDIA_API_KEY: ""
+          ANTHROPIC_API_KEY: ""
+        run: python examples/compare_endpoints.py
+
       - name: Run closed loop real-backend example (keyless path)
         env:
           OPENAI_API_KEY: ""
