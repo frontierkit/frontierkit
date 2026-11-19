@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "chatcortex"
-version = "0.10.1"
-description = "Framework for multi-objective synthesis and optimization of AI agent architectures under bounded evaluation budgets"
+version = "0.10.2"
+description = "Find out which model and prompt answer your questions best: compare models, prompts and pipeline steps on your own questions, on free endpoints"
 readme = "README.md"
 requires-python = ">=3.10"
 license = { text = "MIT" }
@@ -15,14 +15,16 @@ authors = [
 ]
 
 keywords = [
-    "automl",
-    "multi-objective-optimization",
-    "agent-architecture",
+    "llm",
+    "evaluation",
+    "model-comparison",
+    "prompt-comparison",
+    "benchmark",
+    "rag",
     "llm-agents",
     "pareto-optimization",
-    "architecture-search",
-    "beam-search",
-    "ai-systems"
+    "multi-objective-optimization",
+    "architecture-search"
 ]
 
 classifiers = [
@@ -68,6 +70,7 @@ Homepage = "https://siddharth1012.github.io/chatCortex/"
 Documentation = "https://siddharth1012.github.io/chatCortex/"
 Repository = "https://github.com/siddharth1012/chatCortex"
 Issues = "https://github.com/siddharth1012/chatCortex/issues"
+Changelog = "https://github.com/siddharth1012/chatCortex/blob/main/CHANGELOG.md"
 
 [project.scripts]
 chatcortex-registry = "chatcortex.registry.cli:main"

@@ -3,7 +3,7 @@
 [![CI](https://github.com/siddharth1012/chatCortex/actions/workflows/ci.yml/badge.svg)](https://github.com/siddharth1012/chatCortex/actions/workflows/ci.yml)
 [![PyPI version](https://img.shields.io/pypi/v/chatcortex)](https://pypi.org/project/chatcortex/)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue)](https://www.python.org/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://github.com/siddharth1012/chatCortex/blob/main/LICENSE)
 
 **Find out which model and prompt answer your questions best.**
 
@@ -50,7 +50,7 @@ python examples/pick_models.py --max-questions 4
 python examples/pick_models.py --questions my_questions.csv
 ```
 
-The [get-started guide](docs/GUIDE.md) walks through each step: getting keys,
+The [get-started guide](https://siddharth1012.github.io/chatCortex/GUIDE/) walks through each step: getting keys,
 writing questions, reading the results, and changing what is compared.
 
 ## What you can compare
@@ -87,7 +87,7 @@ best = quality_frontier(evaluations)[0]                    # highest quality fir
 print(best.components, best.quality, best.latency_ms)
 ```
 
-[Using ChatCortex from Python](docs/USAGE.md) covers the rest: describing
+[Using ChatCortex from Python](https://siddharth1012.github.io/chatCortex/USAGE/) covers the rest: describing
 components and tasks, running your own functions, calling models from several
 vendors, measuring cost from token usage, and letting the library choose what
 to try when there are too many combinations.
@@ -99,7 +99,7 @@ scored 0.95 on two vendors, but answered in 230 ms on one and 14,516 ms on the
 other. Without reading material it scored 0.10. A smaller model was no faster
 and scored 0.33. None of that is visible from a model card. The benchmark that
 produced these numbers runs on free models and is in
-[benchmarks/qa_frontier/](benchmarks/qa_frontier/).
+[benchmarks/qa_frontier/](https://github.com/siddharth1012/chatCortex/tree/main/benchmarks/qa_frontier).
 
 ## Where it stands
 
@@ -116,18 +116,18 @@ minor versions.
 ## Documentation
 
 - [Website](https://siddharth1012.github.io/chatCortex/)
-- [Get started](docs/GUIDE.md): compare free models and prompts on your own questions
-- [Using ChatCortex from Python](docs/USAGE.md)
-- [How it works](docs/ARCHITECTURE.md)
-- [Benchmarks](docs/BENCHMARKS.md)
-- [Examples](examples/)
-- [Contributing](CONTRIBUTING.md) and [Changelog](CHANGELOG.md)
+- [Get started](https://siddharth1012.github.io/chatCortex/GUIDE/): compare free models and prompts on your own questions
+- [Using ChatCortex from Python](https://siddharth1012.github.io/chatCortex/USAGE/)
+- [How it works](https://siddharth1012.github.io/chatCortex/ARCHITECTURE/)
+- [Benchmarks](https://siddharth1012.github.io/chatCortex/BENCHMARKS/)
+- [Examples](https://github.com/siddharth1012/chatCortex/tree/main/examples)
+- [Contributing](https://github.com/siddharth1012/chatCortex/blob/main/CONTRIBUTING.md) and [Changelog](https://github.com/siddharth1012/chatCortex/blob/main/CHANGELOG.md)
 
 ## Citing
 
 If you use ChatCortex in your research, please cite it; see
-[CITATION.cff](CITATION.cff).
+[CITATION.cff](https://github.com/siddharth1012/chatCortex/blob/main/CITATION.cff).
 
 ## License
 
-[MIT](LICENSE). Developed by Siddharth Saraswat.
+[MIT](https://github.com/siddharth1012/chatCortex/blob/main/LICENSE). Developed by Siddharth Saraswat.
