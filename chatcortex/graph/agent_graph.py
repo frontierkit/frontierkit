@@ -105,6 +105,14 @@ class AgentGraph:
             for n in self._graph.nodes
         )
 
+    def aggregate_quality(self) -> float:
+        """Product of component quality estimates; unmeasured counts as 1.0."""
+        quality = 1.0
+        for n in self._graph.nodes:
+            score = self.get_metadata(n).quality_score
+            quality *= 1.0 if score is None else score
+        return quality
+
     def aggregate_reliability(self) -> float:
         """
         Simple multiplicative reliability model:

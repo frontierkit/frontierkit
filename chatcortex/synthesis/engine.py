@@ -44,6 +44,7 @@ def graph_to_candidate(graph: AgentGraph) -> ArchitectureCandidate:
         total_cost=graph.total_cost(),
         total_latency=graph.total_latency(),
         total_reliability=graph.aggregate_reliability(),
+        total_quality=graph.aggregate_quality(),
     )
 
 
@@ -53,6 +54,7 @@ def objective_key(candidate: ArchitectureCandidate) -> tuple:
         candidate.total_cost,
         candidate.total_latency,
         -candidate.total_reliability,
+        -candidate.total_quality,
     )
 
 
@@ -132,8 +134,9 @@ def score_component(meta: ComponentMetadata, weights: dict) -> float:
 class ChainSearchEngine:
     """Runs the shared expansion -> truncation -> materialization search."""
 
-    def __init__(self, registry):
+    def __init__(self, registry, keep_ties: bool = False):
         self.registry = registry
+        self.keep_ties = keep_ties
 
     def run(
         self,
@@ -221,7 +224,7 @@ class ChainSearchEngine:
         simply stop early), checks hard constraints, and maintains the
         final non-dominated set.
         """
-        pareto_set = ParetoSet()
+        pareto_set = ParetoSet(keep_ties=self.keep_ties)
 
         for graph in beam_graphs:
             try:

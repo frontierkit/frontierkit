@@ -46,7 +46,7 @@ from chatcortex.registry.capability_registry import CapabilityRegistry
 from chatcortex.synthesis.base import Synthesizer
 from chatcortex.synthesis.budget import SynthesisBudget
 from chatcortex.synthesis.task_specification import TaskSpecification
-from chatcortex.telemetry.calibration import calibrate
+from chatcortex.telemetry.calibration import calibrate, calibrate_quality
 
 
 @dataclass
@@ -150,7 +150,15 @@ def run_closed_loop(
             pipeline is run on every example (the executor needs a
             backend), all of those runs feed calibration, and each
             iteration's ``evaluations`` holds the measured quality, cost
-            and latency per pipeline.
+            and latency per pipeline. Measured quality also steers the
+            search: each component's ``quality_score`` is estimated from
+            every scored run so far (see ``calibrate_quality``; prior
+            strength is ``prior_strength``, or 1 when that is unset), and
+            the next round's frontier is synthesized with quality as an
+            objective. A pipeline scored in an earlier round is not run
+            again; its earlier evaluation is reused. Build the
+            synthesizer with ``keep_ties=True`` (``ExhaustiveSynthesizer``)
+            so look-alike alternatives are all tried.
         candidates_per_iteration: Execute only the first ``N`` frontier
             members (objective-sorted, deterministic) instead of all of
             them; useful when executions are expensive. Must be ``>= 1``
@@ -193,6 +201,7 @@ def run_closed_loop(
         )
 
     all_traces: List[Dict[str, Any]] = []
+    scored: Dict[tuple, PipelineEvaluation] = {}
     records: List[LoopIteration] = []
     current = registry
     for iteration in range(iterations):
@@ -220,9 +229,11 @@ def run_closed_loop(
                     executor.execute(candidate.graph).telemetry.records
                 )
         else:
-            evaluations = evaluate_pipelines(selected, executor, eval_set)
-            for evaluation in evaluations:
+            fresh = [c for c in selected if _components(c) not in scored]
+            for evaluation in evaluate_pipelines(fresh, executor, eval_set):
+                scored[evaluation.components] = evaluation
                 traces.extend(evaluation.traces)
+            evaluations = [scored[_components(c)] for c in selected]
 
         if prior_strength is None:
             calibrated = calibrate(current, traces, alpha=alpha)
@@ -230,6 +241,12 @@ def run_closed_loop(
             all_traces.extend(traces)
             calibrated = calibrate(
                 registry, all_traces, prior_strength=prior_strength
+            )
+        if eval_set is not None:
+            calibrated = calibrate_quality(
+                calibrated,
+                scored.values(),
+                prior_strength=1.0 if prior_strength is None else prior_strength,
             )
         updated = [
             prior.name
@@ -246,10 +263,13 @@ def run_closed_loop(
                         "cost": c.total_cost,
                         "latency": c.total_latency,
                         "reliability": c.total_reliability,
+                        "quality": c.total_quality,
                     }
                     for c in frontier
                 ],
-                executed_candidates=len(selected),
+                executed_candidates=(
+                    len(selected) if eval_set is None else len(fresh)
+                ),
                 trace_count=len(traces),
                 updated_components=updated,
                 traces=[dict(trace) for trace in traces],
@@ -262,6 +282,10 @@ def run_closed_loop(
     return records
 
 
+def _components(candidate) -> tuple:
+    return tuple(m.name for _, m in candidate.graph.iter_components())
+
+
 def _differs(calibrated, prior) -> bool:
     """True when calibration changed any performance field.
 
@@ -272,4 +296,5 @@ def _differs(calibrated, prior) -> bool:
         calibrated.reliability_score != prior.reliability_score
         or calibrated.avg_latency_ms != prior.avg_latency_ms
         or calibrated.cost_per_call != prior.cost_per_call
+        or calibrated.quality_score != prior.quality_score
     )

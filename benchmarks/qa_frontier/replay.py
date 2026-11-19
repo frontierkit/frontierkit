@@ -11,8 +11,11 @@ Strategies:
 - grid: try every pipeline, in a fixed order.
 - random: try pipelines in random order (averaged over 20 seeds).
 - chatcortex: ChatCortex's closed loop with an eval set. Each round it
-  synthesizes a frontier from the registry, scores those pipelines on
-  the questions, and calibrates the registry from what it measured.
+  synthesizes a frontier from the registry, with measured quality as an
+  objective, scores the pipelines it has not scored yet, and calibrates
+  the registry from what it measured. Look-alike pipelines are all kept.
+- chatcortex, ties merged: the same loop keeping only one of several
+  pipelines with identical predicted numbers.
 
 The score at a budget is coverage: the share of the true quality frontier
 (found by scoring every pipeline) that the strategy's own frontier
@@ -140,7 +143,10 @@ def random_strategy(replay: Replay, seed: int) -> List[Point]:
 
 
 def chatcortex_strategy(
-    replay: Replay, iterations: int = 8, prior_strength: float = 20.0
+    replay: Replay,
+    iterations: int = 8,
+    prior_strength: float = 20.0,
+    keep_ties: bool = True,
 ) -> List[Point]:
     """ChatCortex's closed loop with an eval set; a point per round."""
     contexts, answers, posts, functions = build_components(replay.questions, replay.models)
@@ -157,7 +163,7 @@ def chatcortex_strategy(
     records = run_closed_loop(
         registry=registry,
         task=TaskSpecification(required_capabilities=["context", "answer", "postprocess"]),
-        synthesizer=ExhaustiveSynthesizer,
+        synthesizer=lambda reg: ExhaustiveSynthesizer(reg, keep_ties=keep_ties),
         executor=executor,
         iterations=iterations,
         prior_strength=prior_strength,
@@ -186,6 +192,7 @@ def compare(replay: Replay) -> Dict[str, Callable[[int], Tuple[float, float]]]:
     grid = grid_strategy(replay)
     randoms = [random_strategy(replay, seed) for seed in RANDOM_SEEDS]
     loop = chatcortex_strategy(replay)
+    collapsed = chatcortex_strategy(replay, keep_ties=False)
 
     def single(points):
         def at(budget):
@@ -205,6 +212,7 @@ def compare(replay: Replay) -> Dict[str, Callable[[int], Tuple[float, float]]]:
         "grid": single(grid),
         "random (mean of 20)": averaged,
         "chatcortex": single(loop),
+        "chatcortex, ties merged": single(collapsed),
     }, loop
 
 

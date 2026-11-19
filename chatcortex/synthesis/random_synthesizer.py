@@ -97,6 +97,7 @@ class RandomSynthesizer(Synthesizer):
                 total_cost=total_cost,
                 total_latency=total_latency,
                 total_reliability=total_reliability,
+                total_quality=graph.aggregate_quality(),
             )
 
             pareto_set.add(candidate=candidate)

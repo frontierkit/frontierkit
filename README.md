@@ -210,9 +210,23 @@ the three frontier pipelines score 1.00, 0.00 and 0.00 on four questions,
 although their declared reliabilities are 0.91, 0.85 and 0.71.
 
 Only pipelines the synthesizer proposes are scored. Pass `eval_set=` to
-`run_closed_loop` and every example run also feeds calibration, so a component
-that was declared better than it is loses its place and pipelines it was hiding
-get proposed and scored in later rounds.
+`run_closed_loop` and measured quality steers the search: each component gets a
+`quality_score` estimated from every scored run, and the next round is
+synthesized with quality as a fourth objective next to cost, latency and
+reliability. Components not yet measured count as 1.0, so they get tried. A
+pipeline is scored once and reused in later rounds.
+
+```python
+records = run_closed_loop(
+    registry, task,
+    synthesizer=lambda reg: ExhaustiveSynthesizer(reg, keep_ties=True),
+    executor=executor, eval_set=eval_set, prior_strength=20, iterations=8,
+)
+```
+
+`keep_ties=True` keeps every pipeline with identical predicted numbers instead
+of one of them, so look-alike alternatives (two context options with the same
+declared latency, say) all get measured.
 
 ```bash
 python examples/scored_pipeline.py
