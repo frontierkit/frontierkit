@@ -8,7 +8,7 @@ Set the keys you have (each one is optional), then run from the repo root:
 
     export SAIA_API_KEY=...        # GWDG SAIA / Chat AI
     export NVIDIA_API_KEY=...      # NVIDIA API catalog
-    export GROQ_API_KEY=...        # Groq; also set GROQ_MODEL
+    export GROQ_API_KEY=...        # Groq
     export OPENROUTER_API_KEY=...  # OpenRouter, free models only
     pip install "chatcortex[real]"
     python examples/pick_models.py
@@ -70,14 +70,14 @@ MODELS = [
      "SAIA_GEMMA_MODEL", "gemma-4-31b-it", 6.5),
     ("nvidia_gemma_31b", "NVIDIA_API_KEY", "https://integrate.api.nvidia.com/v1",
      "NVIDIA_MODEL", "google/gemma-4-31b-it", 2.0),
-    # Groq's model names change often: set GROQ_MODEL to one your key lists.
-    ("groq", "GROQ_API_KEY", "https://api.groq.com/openai/v1",
-     "GROQ_MODEL", None, 2.5),
+    ("groq_gpt_oss_20b", "GROQ_API_KEY", "https://api.groq.com/openai/v1",
+     "GROQ_MODEL", "openai/gpt-oss-20b", 2.5),
     ("openrouter_gemma_31b", "OPENROUTER_API_KEY", "https://openrouter.ai/api/v1",
      "OPENROUTER_MODEL", "google/gemma-4-31b-it:free", 3.5),
 ]
 
-REQUEST_OPTIONS = {"max_tokens": 200, "temperature": 0, "timeout": 120}
+# Room for reasoning models, whose thinking counts against max_tokens.
+REQUEST_OPTIONS = {"max_tokens": 1024, "temperature": 0, "timeout": 120}
 
 SCORERS = {"f1": token_f1, "contains": contains_answer, "exact": exact_match}
 

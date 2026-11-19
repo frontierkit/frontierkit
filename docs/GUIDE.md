@@ -25,7 +25,7 @@ Any one is enough; more vendors means more to compare.
 |---|---|---|
 | SAIA (GWDG Chat AI) | Academic Cloud / KISSKI | `SAIA_API_KEY` |
 | NVIDIA API catalog | build.nvidia.com | `NVIDIA_API_KEY` |
-| Groq | console.groq.com | `GROQ_API_KEY`, plus `GROQ_MODEL` |
+| Groq | console.groq.com | `GROQ_API_KEY` |
 | OpenRouter | openrouter.ai | `OPENROUTER_API_KEY` |
 
 Set them as environment variables. On Windows, search the Start menu for
@@ -36,9 +36,9 @@ variables, then open a new terminal. On macOS or Linux:
 export SAIA_API_KEY=...
 ```
 
-Groq renames its models often, so the script has no default for it: set
-`GROQ_MODEL`. If you leave it out, the script prints the models your key can
-use.
+Vendors rename and retire models often. If a default model has gone, the
+script skips it and prints the model names your key can use; set the matching
+variable, such as `GROQ_MODEL`, to one of them.
 
 ## 3. Write your questions
 
