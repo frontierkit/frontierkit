@@ -164,6 +164,15 @@ def test_grid_report_finds_the_known_best_pipeline(tmp_path):
     assert as_is.quality < best.quality
 
 
+def test_pipelines_differing_only_in_a_local_step_tie_exactly(tmp_path):
+    cache, _, _ = _collect(tmp_path)
+    evaluations, _ = grid_report(_questions(), cache, models=MODELS)
+    by_name = {e.components: e for e in evaluations}
+    a = by_name[("ctx_top1", "fast", "post_as_is")]
+    b = by_name[("ctx_top1", "fast", "post_first_clause")]
+    assert a.latency_ms == b.latency_ms == 50.0
+
+
 def test_grid_report_lists_pipelines_still_missing_replies(tmp_path):
     cache, _, _ = _collect(tmp_path, env={"KEY_P1": "k1"})
     evaluations, incomplete = grid_report(_questions(), cache, models=MODELS)

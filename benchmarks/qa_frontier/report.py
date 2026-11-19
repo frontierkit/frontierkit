@@ -20,7 +20,6 @@ from chatcortex import (
     AgentExecutor,
     AgentGraph,
     BackendConfigurationError,
-    CallableBackend,
     ComponentMetadata,
     EvalSet,
     Example,
@@ -69,6 +68,21 @@ class CachedModelBackend:
             cost=0.0,
             output=record["output"],
         )
+
+
+class LocalStepBackend:
+    """Runs the local context and postprocess steps, recording no latency.
+
+    They take microseconds; timing them would let measurement noise decide
+    between pipelines that differ only in a free local step.
+    """
+
+    def __init__(self, functions):
+        self.functions = functions
+
+    def __call__(self, metadata: ComponentMetadata, node_input: Any) -> ProbeResult:
+        output = self.functions[metadata.name](node_input)
+        return ProbeResult(success=True, latency_ms=0.0, cost=0.0, output=output)
 
 
 def _metadata(name: str, capability: str, latency_ms: float, reliability: float):
@@ -128,7 +142,7 @@ def grid_report(
     contexts, answers, posts, functions = build_components(questions, models)
     cached = CachedModelBackend(cache)
     backend = RoutedBackend(
-        {m.name: cached for m in models}, default=CallableBackend(functions)
+        {m.name: cached for m in models}, default=LocalStepBackend(functions)
     )
     executor = AgentExecutor(backend=backend)
     eval_set = eval_set_for(questions)
