@@ -48,6 +48,9 @@ pip install -e .
 
 ## Quickstart
 
+Want to know which free model and prompt answer your own questions best? Follow
+[the guide](docs/GUIDE.md): a CSV of questions, a few free API keys, one command.
+
 ```python
 from chatcortex import (
     TaskSpecification,
@@ -287,6 +290,7 @@ Approximation quality is measured with **Pareto coverage**, **hypervolume loss**
 
 ## Documentation
 
+- [Guide: pick the best models for your questions, for free](docs/GUIDE.md) — compare free models and prompts on your own questions and get a recommendation
 - [Architecture](docs/ARCHITECTURE.md) — system design and component layers
 - [Benchmarks](docs/BENCHMARKS.md) — experimental evaluation of synthesis strategies
 - [Examples](examples/) — runnable demos and budget-sweep experiments
