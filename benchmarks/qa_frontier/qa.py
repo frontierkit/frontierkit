@@ -203,8 +203,8 @@ FREE_MODELS: List[ModelSpec] = [
         "https://integrate.api.nvidia.com/v1", "google/gemma-4-31b-it", 5000,
     ),
     ModelSpec(
-        "groq_llama_70b", "groq", "GROQ_API_KEY",
-        "https://api.groq.com/openai/v1", "llama-3.3-70b-versatile", 600,
+        "groq_gpt_oss_20b", "groq", "GROQ_API_KEY",
+        "https://api.groq.com/openai/v1", "openai/gpt-oss-20b", 600,
     ),
     ModelSpec(
         "openrouter_gemma_31b", "openrouter", "OPENROUTER_API_KEY",
@@ -222,7 +222,8 @@ PROVIDER_MIN_INTERVAL_S: Dict[str, float] = {
     "openrouter": 3.5,
 }
 
-REQUEST_OPTIONS = {"max_tokens": 300, "temperature": 0, "timeout": 120}
+# Room for reasoning models, whose thinking counts against max_tokens.
+REQUEST_OPTIONS = {"max_tokens": 1024, "temperature": 0, "timeout": 120}
 
 # --- response cache ------------------------------------------------------
 

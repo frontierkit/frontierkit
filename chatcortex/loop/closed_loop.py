@@ -32,9 +32,7 @@ estimate for a component is then its declared value pulled toward the
 mean of everything observed, by exactly as much as the evidence supports.
 """
 
-import itertools
 import math
-import random
 from dataclasses import dataclass, field
 from typing import Any, Callable, Dict, List, Optional, Union
 
@@ -44,12 +42,10 @@ from chatcortex.evaluation.eval_set import (
     evaluate_pipelines,
 )
 from chatcortex.execution.executor import AgentExecutor
-from chatcortex.graph.agent_graph import AgentGraph
-from chatcortex.graph.node_ids import node_id_for
-from chatcortex.optimization.architecture_candidate import ArchitectureCandidate
 from chatcortex.registry.capability_registry import CapabilityRegistry
 from chatcortex.synthesis.base import Synthesizer
 from chatcortex.synthesis.budget import SynthesisBudget
+from chatcortex.synthesis.enumeration import enumerate_pipelines
 from chatcortex.synthesis.task_specification import TaskSpecification
 from chatcortex.telemetry.calibration import calibrate, calibrate_quality
 
@@ -245,7 +241,7 @@ def run_closed_loop(
             chosen = {_components(c) for c in selected}
             untried = [
                 c
-                for c in _enumerate(current, task, seed=iteration)
+                for c in enumerate_pipelines(current, task, seed=iteration)
                 if _components(c) not in scored and _components(c) not in chosen
             ]
             untried.sort(
@@ -321,48 +317,6 @@ def run_closed_loop(
         )
         current = calibrated
     return records
-
-
-# Above this many pipelines, exploration samples the space instead of
-# listing all of it.
-EXPLORE_ENUMERATION_LIMIT = 20_000
-
-
-def _enumerate(
-    registry: CapabilityRegistry, task: TaskSpecification, seed: int
-) -> List[ArchitectureCandidate]:
-    """Every feasible chain for ``task``, or a seeded sample of them."""
-    options = [
-        registry.get_by_capability(capability, task.privacy_constraint)
-        for capability in task.required_capabilities
-    ]
-    size = math.prod(len(o) for o in options)
-    if size <= EXPLORE_ENUMERATION_LIMIT:
-        combos = itertools.product(*options)
-    else:
-        rng = random.Random(seed)
-        combos = (
-            tuple(rng.choice(o) for o in options)
-            for _ in range(EXPLORE_ENUMERATION_LIMIT)
-        )
-    candidates = []
-    for combo in combos:
-        graph = AgentGraph()
-        for stage, metadata in enumerate(combo):
-            graph.chain_append(node_id_for(metadata.name, stage), metadata)
-        candidate = ArchitectureCandidate(
-            graph=graph,
-            total_cost=graph.total_cost(),
-            total_latency=graph.total_latency(),
-            total_reliability=graph.aggregate_reliability(),
-            total_quality=graph.aggregate_quality(),
-        )
-        if task.max_cost is not None and candidate.total_cost > task.max_cost:
-            continue
-        if task.max_latency is not None and candidate.total_latency > task.max_latency:
-            continue
-        candidates.append(candidate)
-    return candidates
 
 
 def _components(candidate) -> tuple:

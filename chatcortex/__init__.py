@@ -19,6 +19,7 @@ from .evaluation.eval_set import (
     evaluate_pipelines,
     quality_frontier,
 )
+from .evaluation.scorers import contains_answer, exact_match, token_f1
 from .execution.callable_backend import CallableBackend, StepResult
 from .execution.executor import AgentExecutor, BackendConfigurationError
 from .execution.routed_backend import RoutedBackend
@@ -31,6 +32,7 @@ from .registry.metadata import ComponentMetadata
 from .registry.package import RegistryReport, save_registry, validate_registry_file
 from .synthesis.beam_synthesizer import BeamSynthesizer
 from .synthesis.budget import SynthesisBudget
+from .synthesis.enumeration import count_pipelines, enumerate_pipelines
 from .synthesis.exhaustive_synthesizer import ExhaustiveSynthesizer
 from .synthesis.heuristic_synthesizer import HeuristicSynthesizer
 from .synthesis.pareto_partial_beam_synthesizer import ParetoPartialBeamSynthesizer
@@ -60,6 +62,11 @@ __all__ = [
     "PipelineEvaluation",
     "evaluate_pipelines",
     "quality_frontier",
+    "exact_match",
+    "contains_answer",
+    "token_f1",
+    "enumerate_pipelines",
+    "count_pipelines",
     "CapabilityRegistry",
     "LoopIteration",
     "ComponentMetadata",

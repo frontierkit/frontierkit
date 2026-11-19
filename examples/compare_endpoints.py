@@ -83,8 +83,9 @@ PROVIDERS = [
         "GROQ_API_KEY",
         "https://api.groq.com/openai/v1",
         "GROQ_MODEL",
-        "llama-3.3-70b-versatile",
-        SHORT_ANSWER,
+        "openai/gpt-oss-20b",
+        # A reasoning model: its thinking counts against max_tokens.
+        {"max_tokens": 1024, "temperature": 0, "timeout": REQUEST_TIMEOUT_S},
         FREE,
     ),
     (

@@ -57,6 +57,14 @@ jobs:
           ANTHROPIC_API_KEY: ""
         run: python examples/compare_endpoints.py
 
+      - name: Run pick models example (keyless path)
+        env:
+          SAIA_API_KEY: ""
+          NVIDIA_API_KEY: ""
+          GROQ_API_KEY: ""
+          OPENROUTER_API_KEY: ""
+        run: python examples/pick_models.py
+
       - name: Run QA benchmark scripts (keyless path)
         env:
           SAIA_API_KEY: ""
