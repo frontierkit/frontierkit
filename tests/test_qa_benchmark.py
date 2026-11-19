@@ -9,6 +9,7 @@ from benchmarks.qa_frontier.collect import collect
 from benchmarks.qa_frontier.qa import (
     CONTEXT_VARIANTS,
     SAMPLE_DATA,
+    SQUAD_SUBSET,
     ModelSpec,
     ResponseCache,
     Retriever,
@@ -168,3 +169,11 @@ def test_grid_report_lists_pipelines_still_missing_replies(tmp_path):
     evaluations, incomplete = grid_report(_questions(), cache, models=MODELS)
     assert {e.components[1] for e in evaluations} == {"fast"}
     assert incomplete and all("good" in name for name in incomplete)
+
+
+def test_squad_subset_is_intact():
+    questions = load_questions(SQUAD_SUBSET)
+    assert len(questions) == 30
+    assert len({q.id for q in questions}) == 30
+    for question in questions:
+        assert any(answer in question.context for answer in question.answers)

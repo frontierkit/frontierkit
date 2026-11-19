@@ -6,7 +6,7 @@ with ChatCortex's own executor and scoring, as a full grid search would.
 Pipelines whose replies are not all collected yet are listed as
 incomplete.
 
-    python -m benchmarks.qa_frontier.report --data path/to/squad-dev.json --questions 30
+    python -m benchmarks.qa_frontier.report
 
 Use the same --data, --questions and --seed as for collect.py.
 """
@@ -37,7 +37,7 @@ from .qa import (
     DEFAULT_CACHE,
     FREE_MODELS,
     POSTPROCESS_VARIANTS,
-    SAMPLE_DATA,
+    SQUAD_SUBSET,
     ModelSpec,
     Question,
     ResponseCache,
@@ -146,7 +146,7 @@ def grid_report(
 
 def main(argv=None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
-    parser.add_argument("--data", default=str(SAMPLE_DATA))
+    parser.add_argument("--data", default=str(SQUAD_SUBSET))
     parser.add_argument("--questions", type=int, default=None)
     parser.add_argument("--seed", type=int, default=0)
     parser.add_argument("--cache", default=str(DEFAULT_CACHE))

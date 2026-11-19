@@ -30,6 +30,8 @@ from typing import Any, Callable, Dict, Iterable, List, Optional, Sequence, Tupl
 
 HERE = Path(__file__).parent
 SAMPLE_DATA = HERE / "sample.json"
+# 30 questions from the SQuAD v1.1 development set (CC BY-SA 4.0).
+SQUAD_SUBSET = HERE / "squad_dev_30.json"
 DEFAULT_CACHE = HERE / "cache.jsonl"
 
 # --- questions -----------------------------------------------------------

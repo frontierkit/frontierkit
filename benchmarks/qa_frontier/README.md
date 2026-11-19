@@ -21,8 +21,9 @@ used.
 
 ## Run it
 
-Set the keys you have, then collect replies. This uses the six bundled sample
-questions; `--data` points it at any SQuAD-format file.
+Set the keys you have, then collect replies. This uses the 30 bundled SQuAD
+questions; `--data benchmarks/qa_frontier/sample.json` runs six quick ones
+instead, and `--data` accepts any SQuAD-format file.
 
 ```bash
 python -m benchmarks.qa_frontier.collect --budget 100
@@ -40,6 +41,16 @@ Pass the same `--data`, `--questions` and `--seed` to both commands.
 ## Calls needed
 
 One call per model for each distinct prompt: questions × 3 context options ×
-models. Six sample questions and five models need 90 calls; 30 questions need
-450. Each provider is spaced to stay under its free-tier limit, and a provider
+models. The 30 SQuAD questions and five models need 450 calls; the six sample
+questions need 90. Each provider is spaced to stay under its free-tier limit, and a provider
 that reports a rate limit is paused until the next run.
+
+## Data
+
+`squad_dev_30.json` holds 30 questions from the
+[SQuAD v1.1](https://rajpurkar.github.io/SQuAD-explorer/) development set:
+one question from each of 30 randomly chosen articles, text unchanged. SQuAD is
+by Rajpurkar, Zhang, Lopyrev and Liang (2016) and is licensed under
+[CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/); this subset is
+shared under the same licence. `sample.json` holds six questions written for
+this repository.

@@ -7,9 +7,10 @@ and rerun: replies already cached are never requested again.
 Set the keys you have, then run from the repo root:
 
     export SAIA_API_KEY=...  NVIDIA_API_KEY=...  GROQ_API_KEY=...  OPENROUTER_API_KEY=...
-    python -m benchmarks.qa_frontier.collect --data path/to/squad-dev.json --questions 30
+    python -m benchmarks.qa_frontier.collect --budget 100
 
-Without --data it uses the small bundled sample. --budget caps how many
+It uses the bundled 30 SQuAD questions unless --data names another
+SQuAD-format file (sample.json holds six quick ones). --budget caps how many
 calls this run makes. Models whose key is not set are skipped. A provider
 that hits its rate limit is paused for the rest of the run; rerun later
 to continue. Only free models are used.
@@ -28,7 +29,7 @@ from .qa import (
     FREE_MODELS,
     PROVIDER_MIN_INTERVAL_S,
     REQUEST_OPTIONS,
-    SAMPLE_DATA,
+    SQUAD_SUBSET,
     ModelSpec,
     Question,
     ResponseCache,
@@ -141,7 +142,7 @@ def collect(
 
 def main(argv=None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
-    parser.add_argument("--data", default=str(SAMPLE_DATA), help="SQuAD-format JSON file")
+    parser.add_argument("--data", default=str(SQUAD_SUBSET), help="SQuAD-format JSON file")
     parser.add_argument("--questions", type=int, default=None, help="sample this many questions")
     parser.add_argument("--seed", type=int, default=0, help="sampling seed")
     parser.add_argument("--budget", type=int, default=None, help="max calls this run")
