@@ -6,9 +6,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ## [Unreleased]
 
 ### Added
+- **Measured quality as a search objective** — `ComponentMetadata.quality_score` (optional, `None` until measured) holds an estimated answer quality in `[0, 1]`; `AgentGraph.aggregate_quality()` multiplies it across a pipeline, counting unmeasured components as 1.0; `ArchitectureCandidate.total_quality` carries it, and Pareto dominance now maximises it alongside cost, latency and reliability. With nothing measured every candidate has quality 1.0, so synthesis results are unchanged (the benchmark tables regenerate identically)
+- `calibrate_quality(registry, evaluations, prior_strength, prior_quality=1.0)` estimates each component's quality from scored pipeline runs, crediting each of a pipeline's `k` components with `quality ** (1/k)` and weighing by run count against an optimistic prior
+- `ExhaustiveSynthesizer(registry, keep_ties=True)` and `ParetoSet(keep_ties=True)` keep every metric-identical frontier member instead of one of them
+- A measured `quality_score` is saved and loaded with registry files; files without it are unchanged
+- `run_closed_loop(..., explore=N)` also scores, each round, the `N` untried pipelines with the highest predicted quality (then lowest predicted latency), so the loop keeps looking after its frontier is fully scored. Requires an eval set; off by default. `LoopIteration.explored_candidates` reports how many were added
+- `benchmarks/qa_frontier/` — a question-answering benchmark over 30 pipelines (3 context options × free models × 2 postprocess steps), scored with the SQuAD token F1. `collect` gathers model replies into a resumable response cache with per-provider spacing for free-tier limits; `report` scores every pipeline offline and prints the true quality frontier; `replay` compares how much of that frontier grid search, random search and ChatCortex's closed loop find within a call budget, without new calls. Ships with 30 questions from the SQuAD v1.1 development set (CC BY-SA 4.0, attributed) and six sample questions; any SQuAD-format file can be used
 - **OpenAI-compatible endpoints** — `OpenAIBackend(base_url=..., api_key=...)` points the backend at any vendor or local server that accepts chat-completions requests, with no new dependency. `request_options` adds keyword arguments such as `max_tokens` or `temperature` to every request
 - **`RoutedBackend({component name: backend}, default=...)`** sends each component to its own backend, so one search can mix vendors and local functions; `unrouted(registry)` lists components without a route, and running one raises `BackendConfigurationError`
-- `examples/compare_endpoints.py` — scores providers on the same three questions and reports measured quality and latency; reads `SAIA_API_KEY`, `NVIDIA_API_KEY` and `ANTHROPIC_API_KEY`, and prints a setup card when none is set
+- `examples/compare_endpoints.py` — scores providers on the same three questions and reports measured quality and latency; reads `SAIA_API_KEY`, `NVIDIA_API_KEY`, `GROQ_API_KEY`, `OPENROUTER_API_KEY` and `ANTHROPIC_API_KEY`, and prints a setup card when none is set. Every default model is free; paid models (the Claude row, or an OpenRouter model without `:free`) run only with `ALLOW_PAID_MODELS=1` and report measured cost per question from token usage
+
+### Changed
+- `run_closed_loop(..., eval_set=...)` now steers the search with measured quality: after each round it calls `calibrate_quality` on every pipeline scored so far (prior strength `prior_strength`, or 1 when unset). A pipeline scored in an earlier round is not run again; its evaluation is reused, `executed_candidates` counts only newly run pipelines, and `frontier_objectives` include `quality`. Runs without an eval set behave as before
 
 ## [0.9.0] - 2026-11-18
 

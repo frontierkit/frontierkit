@@ -33,7 +33,7 @@ are ignored rather than raising.
 import dataclasses
 import math
 from collections import defaultdict
-from typing import Dict, List, Optional
+from typing import Dict, Iterable, List, Optional
 
 from ..graph.node_ids import component_name_from_node_id
 from ..registry.capability_registry import CapabilityRegistry
@@ -135,4 +135,68 @@ def calibrate(
             cost_per_call=_blend(weight, empirical_cost, prior.cost_per_call),
         )
         calibrated.update(prior.name, updated)
+    return calibrated
+
+
+def calibrate_quality(
+    registry: CapabilityRegistry,
+    evaluations: Iterable,
+    prior_strength: float = 1.0,
+    prior_quality: float = 1.0,
+) -> CapabilityRegistry:
+    """Estimate each component's answer quality from scored pipeline runs.
+
+    Args:
+        registry: The registry to update; it is not mutated.
+        evaluations: Objects with ``components`` (component names in the
+            pipeline), ``quality`` (mean score in ``[0, 1]``) and ``runs``
+            (examples scored), such as
+            :class:`~chatcortex.evaluation.eval_set.PipelineEvaluation`.
+        prior_strength: How many scored runs the prior counts as.
+        prior_quality: The prior, in ``[0, 1]``. The default 1.0 is
+            optimistic, so components not yet measured look worth trying.
+
+    Pipeline quality is modelled as the product of its components'
+    qualities, so a pipeline of ``k`` components scoring ``q`` credits
+    each component with ``q ** (1 / k)``. Each component's estimate is
+    ``(prior_strength * prior_quality + sum of credits) / (prior_strength
+    + runs)``, over every run that included it. Components that appear in
+    no evaluation keep their current ``quality_score``.
+
+    Returns:
+        A NEW registry with ``quality_score`` set on measured components.
+
+    Raises:
+        ValueError: If ``prior_strength`` is negative or not finite, or
+            ``prior_quality`` is outside ``[0, 1]``.
+    """
+    if not math.isfinite(prior_strength) or prior_strength < 0.0:
+        raise ValueError(
+            f"prior_strength must be a finite number >= 0, {prior_strength!r} given"
+        )
+    if not math.isfinite(prior_quality) or not 0.0 <= prior_quality <= 1.0:
+        raise ValueError(f"prior_quality must be in [0.0, 1.0], {prior_quality!r} given")
+
+    credit: Dict[str, float] = defaultdict(float)
+    runs: Dict[str, int] = defaultdict(int)
+    for evaluation in evaluations:
+        names = list(evaluation.components)
+        share = evaluation.quality ** (1.0 / len(names)) if names else 0.0
+        for name in names:
+            credit[name] += share * evaluation.runs
+            runs[name] += evaluation.runs
+
+    calibrated = CapabilityRegistry()
+    for metadata in registry.list_all():
+        calibrated.register(metadata)
+    for name, n in runs.items():
+        try:
+            prior = calibrated.get(name)
+        except KeyError:
+            continue
+        denominator = prior_strength + n
+        if denominator == 0:
+            continue
+        estimate = (prior_strength * prior_quality + credit[name]) / denominator
+        calibrated.update(name, dataclasses.replace(prior, quality_score=estimate))
     return calibrated

@@ -1,0 +1,96 @@
+{
+  "version": "chatcortex-sample",
+  "note": "Six questions written for ChatCortex in the SQuAD v1.1 format, so the benchmark runs without downloading anything.",
+  "data": [
+    {
+      "title": "Lighthouses",
+      "paragraphs": [
+        {
+          "context": "The lighthouse on the island was built in 1874 from local granite. Its lamp was first fuelled by whale oil and was converted to electricity in 1931. The keeper's cottage beside it now houses a small museum about shipwrecks on the northern reef.",
+          "qas": [
+            {
+              "id": "sample-01",
+              "question": "What stone was the island lighthouse built from?",
+              "answers": [
+                {
+                  "text": "local granite",
+                  "answer_start": 52
+                }
+              ]
+            },
+            {
+              "id": "sample-02",
+              "question": "In which year was the lighthouse lamp converted to electricity?",
+              "answers": [
+                {
+                  "text": "1931",
+                  "answer_start": 143
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Bread",
+      "paragraphs": [
+        {
+          "context": "Sourdough bread rises because of a starter, a culture of wild yeast and lactic acid bacteria kept alive by regular feeding with flour and water. The bacteria produce the sour taste, while the yeast produces the carbon dioxide that makes the dough rise.",
+          "qas": [
+            {
+              "id": "sample-03",
+              "question": "What does a sourdough starter contain besides wild yeast?",
+              "answers": [
+                {
+                  "text": "lactic acid bacteria",
+                  "answer_start": 72
+                }
+              ]
+            },
+            {
+              "id": "sample-04",
+              "question": "Which gas makes sourdough rise?",
+              "answers": [
+                {
+                  "text": "carbon dioxide",
+                  "answer_start": 211
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Glaciers",
+      "paragraphs": [
+        {
+          "context": "A glacier forms where more snow falls in winter than melts in summer. Over many years the snow compacts into firn and then into dense glacial ice, which flows slowly downhill under its own weight.",
+          "qas": [
+            {
+              "id": "sample-05",
+              "question": "What does compacted snow become before it turns into glacial ice?",
+              "answers": [
+                {
+                  "text": "firn",
+                  "answer_start": 109
+                }
+              ]
+            },
+            {
+              "id": "sample-06",
+              "question": "What makes glacial ice flow downhill?",
+              "answers": [
+                {
+                  "text": "its own weight",
+                  "answer_start": 181
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

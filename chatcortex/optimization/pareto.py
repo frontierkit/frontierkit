@@ -11,18 +11,21 @@ def dominates(a: ArchitectureCandidate, b: ArchitectureCandidate) -> bool:
         - Minimize total_cost
         - Minimize total_latency
         - Maximize total_reliability
+        - Maximize total_quality
     """
 
     better_or_equal_all = (
         a.total_cost <= b.total_cost
         and a.total_latency <= b.total_latency
         and a.total_reliability >= b.total_reliability
+        and a.total_quality >= b.total_quality
     )
 
     strictly_better_at_least_one = (
         a.total_cost < b.total_cost
         or a.total_latency < b.total_latency
         or a.total_reliability > b.total_reliability
+        or a.total_quality > b.total_quality
     )
 
     return better_or_equal_all and strictly_better_at_least_one
@@ -57,10 +60,16 @@ class ParetoSet:
 
     Deterministic: metric-identical candidates are kept once, and
     iteration yields the members sorted by objective tuple
-    (total_cost, total_latency, total_reliability).
+    (total_cost, total_latency, total_reliability, total_quality).
+
+    With ``keep_ties=True``, candidates that are metric-identical but
+    built from different components are all kept (sorted by component
+    names after the objectives). Use it when the candidates will be
+    measured, so that alternatives which merely look alike all get tried.
     """
 
-    def __init__(self):
+    def __init__(self, keep_ties: bool = False):
+        self.keep_ties = keep_ties
         self._entries: dict = {}  # objective tuple -> candidate
 
     def __iter__(self):
@@ -89,7 +98,12 @@ class ParetoSet:
             candidate.total_cost,
             candidate.total_latency,
             candidate.total_reliability,
+            candidate.total_quality,
         )
+        if self.keep_ties:
+            candidate_metrics += (
+                tuple(m.name for _, m in candidate.graph.iter_components()),
+            )
 
         if candidate_metrics in self._entries:
             return False  # metric-identical: keep once

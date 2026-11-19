@@ -41,6 +41,12 @@ class ComponentMetadata:
     input_schema: Optional[Dict] = None
     output_schema: Optional[Dict] = None
 
+    # Measured answer quality in [0, 1], estimated by
+    # ``calibrate_quality`` from scored runs. ``None`` means not measured
+    # yet; synthesis then treats the component optimistically, as 1.0, so
+    # untried components get proposed and measured.
+    quality_score: Optional[float] = None
+
     def supports(self, capability: str) -> bool:
         """Check whether components supports a required capability"""
         return capability in self.capabilities
@@ -49,15 +55,20 @@ class ComponentMetadata:
         """The registered component shape: this instance's required JSON fields.
 
         Derived from the dataclass fields themselves; the registry loader's
-        document shape and ``to_dict`` round-trips are built on this.
+        document shape and ``to_dict`` round-trips are built on this. A
+        measured ``quality_score`` is included when set, so a calibrated
+        registry saves and reloads unchanged; files without it are as before.
         """
-        return {
+        document = {
             field_name: (list(value) if isinstance(value, list) else value)
             for field_name, value in (
                 (field.name, getattr(self, field.name))
                 for field in _required_json_fields()
             )
         }
+        if self.quality_score is not None:
+            document["quality_score"] = self.quality_score
+        return document
 
 
 def _required_json_fields() -> tuple:
@@ -135,5 +146,16 @@ def validate_json_payload(payload: Dict[str, Any]) -> Dict[str, Any]:
     for field_name in ("input_schema", "output_schema"):
         if field_name in payload and payload[field_name] is not None:
             kwargs[field_name] = payload[field_name]
+
+    quality = payload.get("quality_score")
+    if quality is not None:
+        if (
+            not isinstance(quality, (int, float))
+            or isinstance(quality, bool)
+            or quality < 0
+            or quality > 1
+        ):
+            raise ValueError("quality_score out of range (must be 0.0-1.0)")
+        kwargs["quality_score"] = quality
 
     return kwargs

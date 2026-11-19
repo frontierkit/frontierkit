@@ -146,7 +146,11 @@ def test_closed_loop_with_an_eval_set_finds_the_known_best_pipeline():
     best = max(final.evaluations, key=lambda evaluation: evaluation.quality)
     assert best.components == BEST
     assert best.quality == 1.0
-    assert final.trace_count == sum(len(e.traces) for e in final.evaluations)
+    # Each pipeline is run once; later rounds reuse its evaluation.
+    distinct = {e.components: e for r in records for e in r.evaluations}
+    assert sum(r.trace_count for r in records) == sum(
+        len(e.traces) for e in distinct.values()
+    )
 
 
 def test_loop_record_with_evaluations_is_json_serializable():
