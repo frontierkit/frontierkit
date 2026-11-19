@@ -36,7 +36,18 @@ every pipeline and print the true frontier, offline:
 python -m benchmarks.qa_frontier.report
 ```
 
-Pass the same `--data`, `--questions` and `--seed` to both commands.
+Then compare search strategies on the same replies, still offline:
+
+```bash
+python -m benchmarks.qa_frontier.replay
+```
+
+It reports, for a range of call budgets, how much of the true frontier each
+strategy has found: trying every pipeline in order, trying them at random, and
+ChatCortex's closed loop with an eval set. A call is one distinct
+(model, prompt) pair.
+
+Pass the same `--data`, `--questions` and `--seed` to every command.
 
 ## Calls needed
 

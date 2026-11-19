@@ -18,6 +18,15 @@ from benchmarks.qa_frontier.qa import (
     needed_calls,
     score,
 )
+from benchmarks.qa_frontier.replay import (
+    Point,
+    Replay,
+    at_budget,
+    chatcortex_strategy,
+    complete_models,
+    grid_strategy,
+    random_strategy,
+)
 from benchmarks.qa_frontier.report import grid_report
 
 MODELS = [
@@ -186,3 +195,47 @@ def test_squad_subset_is_intact():
     assert len({q.id for q in questions}) == 30
     for question in questions:
         assert any(answer in question.context for answer in question.answers)
+
+
+def _replay(tmp_path):
+    cache, _, _ = _collect(tmp_path)
+    return Replay(_questions(), cache, MODELS)
+
+
+def test_replay_counts_one_call_per_model_and_distinct_prompt(tmp_path):
+    replay = _replay(tmp_path)
+    assert replay.total_calls == len(needed_calls(_questions(), MODELS))
+    one = ("ctx_top1", "good", "post_as_is")
+    same_prompts = ("ctx_top1", "good", "post_first_clause")
+    assert replay.calls_for([one]) == len(_questions())
+    assert replay.calls_for([one, same_prompts]) == len(_questions())
+
+
+def test_grid_and_random_find_the_whole_frontier_by_the_full_budget(tmp_path):
+    replay = _replay(tmp_path)
+    total = replay.total_calls
+    assert at_budget(grid_strategy(replay), total).coverage == 1.0
+    for seed in range(3):
+        points = random_strategy(replay, seed)
+        assert at_budget(points, total).coverage == 1.0
+        assert [p.calls for p in points] == sorted(p.calls for p in points)
+
+
+def test_chatcortex_strategy_reports_a_point_per_round_within_the_grid(tmp_path):
+    replay = _replay(tmp_path)
+    points = chatcortex_strategy(replay, iterations=3)
+    assert len(points) == 3
+    assert all(0 < p.calls <= replay.total_calls for p in points)
+    assert [p.calls for p in points] == sorted(p.calls for p in points)
+
+
+def test_at_budget_is_zero_before_anything_is_affordable():
+    points = [Point(10, 0.5, 0.9), Point(20, 1.0, 1.0)]
+    assert at_budget(points, 5) == Point(0, 0.0, 0.0)
+    assert at_budget(points, 15) == Point(10, 0.5, 0.9)
+    assert at_budget(points, 25) == Point(20, 1.0, 1.0)
+
+
+def test_complete_models_excludes_partly_collected_ones(tmp_path):
+    cache, _, _ = _collect(tmp_path, env={"KEY_P1": "k1"})
+    assert [m.name for m in complete_models(_questions(), cache, MODELS)] == ["fast"]

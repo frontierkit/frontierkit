@@ -66,6 +66,7 @@ jobs:
         run: |
           python -m benchmarks.qa_frontier.collect
           python -m benchmarks.qa_frontier.report
+          python -m benchmarks.qa_frontier.replay
 
       - name: Run closed loop real-backend example (keyless path)
         env:
