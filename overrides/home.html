@@ -1,0 +1,390 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{ config.site_name }}: find out which model and prompt answer your questions best</title>
+<meta name="description" content="{{ config.site_description }}">
+<link rel="canonical" href="{{ config.site_url }}">
+<link rel="icon" href="{{ 'assets/favicon.svg' | url }}" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@500;600;700&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+:root {
+  --bg: #090C0B; --fg: #EEF2EF; --soft: #C9D2CC; --muted: #B4BEB8; --label: #A9B4AD; --dim: #7E8983;
+  --accent: #7CF2A8; --on-accent: #06140C; --line: rgba(255,255,255,0.10); --surface: rgba(255,255,255,0.035);
+  --code-bg: #050706;
+  --display: 'Space Grotesk', 'Segoe UI', system-ui, sans-serif;
+  --body: Inter, 'Segoe UI', system-ui, sans-serif;
+  --mono: 'JetBrains Mono', ui-monospace, Consolas, monospace;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body { margin: 0; background: var(--bg); color: var(--fg); font-family: var(--body); font-size: 16px; line-height: 1.55; -webkit-font-smoothing: antialiased; }
+a { color: var(--fg); }
+a:focus-visible, .btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+h1, h2, h3, p { margin: 0; }
+.wrap { max-width: 1200px; margin: 0 auto; padding-left: max(24px, env(safe-area-inset-left, 0px)); padding-right: max(24px, env(safe-area-inset-right, 0px)); }
+.section { padding-top: 104px; display: flex; flex-direction: column; gap: 44px; }
+.display { font-family: var(--display); font-weight: 700; letter-spacing: -0.02em; text-wrap: balance; }
+h2.display { font-size: clamp(30px, 3.6vw, 44px); line-height: 1.08; }
+.lead { color: var(--muted); font-size: 17px; }
+.eyebrow { display: flex; align-items: center; gap: 10px; font-size: 13px; font-weight: 600; letter-spacing: 0.10em; text-transform: uppercase; color: var(--label); }
+.eyebrow::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--accent); }
+.motion .eyebrow::before { animation: pulse 2.4s ease-in-out infinite; }
+.head { display: flex; flex-direction: column; gap: 14px; max-width: 720px; }
+
+.btn { display: inline-flex; align-items: center; gap: 10px; text-decoration: none; font-weight: 600; padding: 15px 26px; border-radius: 999px; transition: transform .2s ease, filter .2s ease, border-color .2s ease; }
+.btn:hover { transform: translateY(-2px); filter: brightness(1.08); }
+.btn-primary { background: var(--accent); color: var(--on-accent); }
+.btn-ghost { border: 1px solid rgba(255,255,255,0.22); color: var(--fg); }
+.btn-ghost:hover { border-color: rgba(255,255,255,0.5); }
+.btn-dark { background: var(--on-accent); color: var(--fg); }
+.btn svg { flex: none; }
+
+.nav { margin-top: 20px; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 24px; padding: 10px 12px 10px 22px; border: 1px solid var(--line); border-radius: 999px; background: rgba(255,255,255,0.03); }
+.brand { display: flex; align-items: center; gap: 10px; text-decoration: none; font-family: var(--display); font-weight: 700; font-size: 19px; letter-spacing: -0.01em; min-height: 44px; }
+.brand::before { content: ""; width: 12px; height: 12px; border-radius: 3px; background: var(--accent); transform: rotate(45deg); }
+.nav-links { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 6px; font-size: 15px; font-weight: 500; }
+.nav-links a { text-decoration: none; padding: 12px 14px; color: var(--soft); border-radius: 999px; transition: color .2s ease, background .2s ease; }
+.nav-links a:hover { color: #fff; background: rgba(255,255,255,0.06); }
+.nav .btn { padding: 12px 22px; font-size: 15px; }
+
+.hero { position: relative; padding-top: 88px; padding-bottom: 72px; display: flex; flex-wrap: wrap; align-items: center; gap: 56px; }
+.glow { position: absolute; right: 4%; top: 40px; width: 460px; max-width: 70%; height: 460px; border-radius: 50%; background: var(--accent); opacity: 0.13; filter: blur(110px); pointer-events: none; }
+.motion .glow { animation: drift 14s ease-in-out infinite; }
+.hero-copy { position: relative; flex: 1 1 460px; min-width: 0; display: flex; flex-direction: column; gap: 26px; }
+.motion .hero-copy { animation: rise .7s cubic-bezier(.2,.7,.2,1) both; }
+.hero h1 { font-size: clamp(40px, 5.4vw, 68px); line-height: 1.02; letter-spacing: -0.03em; }
+.hero .lead { font-size: 19px; max-width: 540px; }
+.row { display: flex; flex-wrap: wrap; gap: 12px; }
+.install { display: flex; align-items: center; gap: 12px; align-self: flex-start; max-width: 100%; overflow-x: auto; font-family: var(--mono); font-size: 14px; color: var(--soft); background: rgba(255,255,255,0.04); border: 1px solid var(--line); border-radius: 12px; padding: 14px 18px; white-space: nowrap; }
+.install .prompt { color: var(--accent); }
+.install .cursor { width: 8px; height: 17px; background: var(--accent); flex: none; }
+.motion .install .cursor { animation: blink 1.1s steps(1) infinite; }
+
+.panel { position: relative; flex: 1 1 440px; min-width: 0; background: rgba(13,17,15,0.82); border: 1px solid var(--line); border-radius: 22px; padding: 26px; display: flex; flex-direction: column; gap: 20px; }
+.motion .hero .panel { animation: rise .7s cubic-bezier(.2,.7,.2,1) .15s both; }
+.panel-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 8px; }
+.panel-title { font-family: var(--display); font-weight: 600; font-size: 18px; }
+.small { font-size: 13px; color: var(--label); }
+.bars { display: flex; flex-direction: column; gap: 16px; }
+.bar-label { display: flex; justify-content: space-between; gap: 12px; font-size: 14px; margin-bottom: 7px; }
+.bar-label .v { font-family: var(--mono); font-weight: 500; font-variant-numeric: tabular-nums; }
+.bar-label .v.best { color: var(--accent); }
+.track { height: 10px; border-radius: 999px; background: rgba(255,255,255,0.08); }
+.fill { height: 10px; border-radius: 999px; min-width: 6px; transform-origin: left; background: var(--soft); }
+.fill.best { background: var(--accent); }
+.fill.low { background: var(--dim); }
+.motion .hero .fill { animation: grow 1.2s cubic-bezier(.2,.7,.2,1) .45s both; }
+.motion .hero .bar:nth-child(2) .fill { animation-delay: .57s; }
+.motion .hero .bar:nth-child(3) .fill { animation-delay: .69s; }
+.motion .hero .bar:nth-child(4) .fill { animation-delay: .81s; }
+.motion .reveal .fill { transform: scaleX(0); }
+.motion .reveal.in .fill { animation: grow 1.2s cubic-bezier(.2,.7,.2,1) both; }
+.motion .reveal.in .bar:nth-child(2) .fill { animation-delay: .12s; }
+.motion .reveal.in .bar:nth-child(3) .fill { animation-delay: .24s; }
+.motion .reveal.in .bar:nth-child(4) .fill { animation-delay: .36s; }
+.note { font-size: 14px; color: var(--label); border-top: 1px solid var(--line); padding-top: 16px; }
+
+.strip { border-top: 1px solid rgba(255,255,255,0.08); border-bottom: 1px solid rgba(255,255,255,0.08); background: rgba(255,255,255,0.02); }
+.stats { padding-top: 44px; padding-bottom: 44px; display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 32px; }
+.stat b { display: block; font-family: var(--display); font-weight: 700; font-size: 40px; letter-spacing: -0.02em; line-height: 1; color: var(--accent); margin-bottom: 8px; white-space: nowrap; }
+.stat span { font-size: 15px; color: var(--muted); }
+
+.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 18px; }
+.grid.wide { grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 20px; padding: 28px; display: flex; flex-direction: column; gap: 12px; min-width: 0; transition: transform .25s ease, border-color .25s ease, background .25s ease; }
+.card:hover { transform: translateY(-4px); border-color: rgba(255,255,255,0.28); background: rgba(255,255,255,0.06); }
+.card h3 { font-family: var(--display); font-weight: 600; font-size: 21px; }
+.card p { color: var(--muted); font-size: 15.5px; }
+.step { font-family: var(--display); font-weight: 700; font-size: 15px; color: var(--accent); }
+pre { margin: 0; font-family: var(--mono); font-size: 12.5px; line-height: 1.6; color: var(--soft); background: var(--code-bg); border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; padding: 14px; overflow-x: auto; }
+
+.split { padding-top: 104px; display: flex; flex-wrap: wrap; gap: 48px; align-items: center; }
+.split-copy { flex: 1 1 380px; min-width: 0; display: flex; flex-direction: column; gap: 18px; }
+.textlink { align-self: flex-start; font-weight: 600; padding: 12px 0; display: inline-flex; align-items: center; gap: 8px; text-underline-offset: 4px; }
+.panel.tall { flex: 1 1 460px; padding: 28px; gap: 26px; background: var(--surface); }
+.group { display: flex; flex-direction: column; gap: 14px; }
+.group + .group { border-top: 1px solid var(--line); padding-top: 24px; }
+.group-title { font-family: var(--display); font-weight: 600; font-size: 17px; }
+
+.status { border: 1px solid var(--line); border-radius: 22px; padding: 36px; display: flex; flex-wrap: wrap; gap: 32px; background: rgba(255,255,255,0.02); }
+.status-head { flex: 1 1 260px; min-width: 0; display: flex; flex-direction: column; gap: 12px; }
+.status h2 { font-size: 30px; line-height: 1.12; }
+.status ul { flex: 2 1 420px; min-width: 0; margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 12px; color: var(--soft); }
+
+.between { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 24px; }
+
+.cta { background: var(--accent); color: var(--on-accent); border-radius: 28px; padding: 56px 40px; display: flex; flex-wrap: wrap; gap: 40px; align-items: center; }
+.cta-copy { flex: 1 1 340px; min-width: 0; display: flex; flex-direction: column; gap: 14px; align-items: flex-start; }
+.cta h2 { font-size: clamp(30px, 3.8vw, 46px); line-height: 1.05; }
+.cta p { font-size: 17px; max-width: 460px; }
+.cmds { flex: 1 1 380px; min-width: 0; display: flex; flex-direction: column; gap: 12px; }
+.cmd { display: flex; align-items: center; gap: 14px; background: var(--on-accent); color: var(--fg); border-radius: 14px; padding: 16px 18px; font-family: var(--mono); font-size: 13.5px; overflow-x: auto; white-space: nowrap; }
+.cmd b { font-family: var(--display); color: var(--accent); }
+
+footer { padding-top: 56px; padding-bottom: 48px; display: flex; flex-wrap: wrap; justify-content: space-between; gap: 16px 32px; font-size: 14px; color: var(--label); }
+footer nav { display: flex; flex-wrap: wrap; gap: 4px 20px; }
+footer a { color: var(--soft); padding: 12px 0; }
+
+/* The page is complete and visible without motion. The "motion" class is
+   added on the first painted frame, so a background tab, a link preview
+   or a browser without scripts never shows hidden content. */
+.motion .reveal { opacity: 0; transform: translateY(22px); transition: opacity .7s ease, transform .7s cubic-bezier(.2,.7,.2,1); }
+.motion .reveal.in { opacity: 1; transform: none; }
+
+@keyframes grow { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+@keyframes rise { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes pulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(124,242,168,0.45); } 60% { box-shadow: 0 0 0 7px rgba(124,242,168,0); } }
+@keyframes drift { 0% { transform: translate(0,0) scale(1); } 50% { transform: translate(-60px,30px) scale(1.15); } 100% { transform: translate(0,0) scale(1); } }
+@keyframes blink { 0%, 49% { opacity: 1; } 50%, 100% { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before { animation: none !important; transition: none !important; }
+  .motion .reveal { opacity: 1; transform: none; }
+  .motion .reveal .fill { transform: none; }
+  html { scroll-behavior: auto; }
+}
+@media (max-width: 640px) {
+  .nav { border-radius: 24px; padding: 12px 14px; }
+  .nav-links { order: 3; width: 100%; }
+  .hero { padding-top: 56px; }
+  .cta { padding: 40px 24px; }
+  .status { padding: 26px; }
+  .section, .split { padding-top: 76px; }
+}
+</style>
+</head>
+<body>
+<script>
+if (window.requestAnimationFrame && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+  requestAnimationFrame(function () { document.documentElement.classList.add('motion'); });
+}
+</script>
+
+<div class="wrap">
+  <nav class="nav" aria-label="Main">
+    <a class="brand" href="{{ '.' | url }}">ChatCortex</a>
+    <div class="nav-links">
+      <a href="{{ 'GUIDE/' | url }}">Get started</a>
+      <a href="{{ 'USAGE/' | url }}">Docs</a>
+      <a href="{{ 'BENCHMARKS/' | url }}">Benchmarks</a>
+      <a href="{{ config.repo_url }}">GitHub</a>
+    </div>
+    <a class="btn btn-primary" href="{{ 'GUIDE/' | url }}">Get started</a>
+  </nav>
+</div>
+
+<header class="wrap hero">
+  <div class="glow" aria-hidden="true"></div>
+  <div class="hero-copy">
+    <div class="eyebrow">Open source · Python · MIT</div>
+    <h1 class="display">Find out which model and prompt answer your questions best.</h1>
+    <p class="lead">ChatCortex runs your questions through every model, prompt and pipeline step you want to compare, scores the answers, and tells you which setup to use. It runs on free model endpoints.</p>
+    <div class="row">
+      <a class="btn btn-primary" href="{{ 'GUIDE/' | url }}">Get started in five minutes
+        <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16"><path d="M3 8h10M9 4l4 4-4 4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></a>
+      <a class="btn btn-ghost" href="{{ config.repo_url }}">View on GitHub</a>
+    </div>
+    <div class="install"><span class="prompt" aria-hidden="true">$</span><span>pip install "chatcortex[real]"</span><span class="cursor" aria-hidden="true"></span></div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-head">
+      <span class="panel-title">One model, four ways to ask</span>
+      <span class="small">measured on a free Groq model</span>
+    </div>
+    <div class="bars">
+      <div class="bar"><div class="bar-label"><span>Short prompt, with context</span><span class="v best">0.92</span></div><div class="track"><div class="fill best" style="width: 92%"></div></div></div>
+      <div class="bar"><div class="bar-label"><span>Short prompt, no context</span><span class="v">0.67</span></div><div class="track"><div class="fill" style="width: 67%"></div></div></div>
+      <div class="bar"><div class="bar-label"><span>Plain question, with context</span><span class="v">0.14</span></div><div class="track"><div class="fill low" style="width: 14%"></div></div></div>
+      <div class="bar"><div class="bar-label"><span>Plain question, no context</span><span class="v">0.06</span></div><div class="track"><div class="fill low" style="width: 6%"></div></div></div>
+    </div>
+    <p class="note">Answer quality from 0 to 1 on four sample questions. Same model, same questions: only the prompt and the context changed.</p>
+  </div>
+</header>
+
+<section class="strip" aria-label="Measured results">
+  <div class="wrap stats">
+    <div class="stat reveal"><b>0.06 → 0.92</b><span>quality on one model, from changing the prompt and context</span></div>
+    <div class="stat reveal"><b>63×</b><span>speed gap for the same model on two vendors</span></div>
+    <div class="stat reveal"><b>4</b><span>free model providers supported out of the box</span></div>
+    <div class="stat reveal"><b>$0</b><span>to run the guide from start to finish</span></div>
+  </div>
+</section>
+
+<main>
+<section class="wrap section">
+  <div class="head reveal">
+    <div class="eyebrow">What you can compare</div>
+    <h2 class="display">Anything that changes the answer.</h2>
+  </div>
+  <div class="grid">
+    <div class="card reveal">
+      <svg aria-hidden="true" width="28" height="28" viewBox="0 0 28 28" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="4" y="5" width="20" height="7" rx="2"/><rect x="4" y="16" width="20" height="7" rx="2"/></svg>
+      <h3>Models and vendors</h3>
+      <p>SAIA, NVIDIA, Groq, OpenRouter, Ollama, or any endpoint that speaks the OpenAI chat format. No extra dependencies.</p>
+    </div>
+    <div class="card reveal">
+      <svg aria-hidden="true" width="28" height="28" viewBox="0 0 28 28" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M5 7h18M5 14h12M5 21h16"/></svg>
+      <h3>Prompts and context</h3>
+      <p>Prompt templates, with or without reading material, in every combination.</p>
+    </div>
+    <div class="card reveal">
+      <svg aria-hidden="true" width="28" height="28" viewBox="0 0 28 28" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10 8l-6 6 6 6M18 8l6 6-6 6"/></svg>
+      <h3>Your own code</h3>
+      <p>Every pipeline step can be a plain Python function: a retriever, a re-ranker, a check on the answer.</p>
+    </div>
+    <div class="card reveal">
+      <svg aria-hidden="true" width="28" height="28" viewBox="0 0 28 28"><path d="M5 23V5M5 23h18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><circle cx="11" cy="16" r="2" fill="currentColor"/><circle cx="16" cy="10" r="2" fill="currentColor"/><circle cx="21" cy="13" r="2" fill="currentColor"/></svg>
+      <h3>Quality, speed and cost</h3>
+      <p>Results show the setups nothing else beats on all three, so you choose the trade-off.</p>
+    </div>
+  </div>
+</section>
+
+<section class="wrap section">
+  <div class="head reveal">
+    <div class="eyebrow">How it works</div>
+    <h2 class="display">Three steps from questions to a recommendation.</h2>
+  </div>
+  <div class="grid wide">
+    <div class="card reveal">
+      <span class="step">01</span>
+      <h3>Write your questions</h3>
+      <p>A CSV with questions, reference answers and, if you like, reading material.</p>
+<pre>question,answer,context
+Which organ produces insulin?,pancreas,"Insulin is…"
+Largest ocean?,Pacific Ocean|Pacific,"The Pacific…"</pre>
+    </div>
+    <div class="card reveal">
+      <span class="step">02</span>
+      <h3>Run one command</h3>
+      <p>It checks each model, then tries every combination, pacing calls to stay inside free limits.</p>
+<pre>python examples/pick_models.py \
+  --questions my_questions.csv</pre>
+    </div>
+    <div class="card reveal">
+      <span class="step">03</span>
+      <h3>Read the answer</h3>
+      <p>A ranked table, the best setup, and a faster one if it is nearly as good.</p>
+<pre>Best quality: groq_gpt_oss_20b
+  with short+with_context
+  (0.92, 292 ms)</pre>
+    </div>
+  </div>
+</section>
+
+<section class="wrap split">
+  <div class="split-copy reveal">
+    <div class="eyebrow">Why measure</div>
+    <h2 class="display">The model card will not tell you this.</h2>
+    <p class="lead">On twelve reading-comprehension questions, the same Gemma model gave equally good answers on two vendors, but one took 230 ms and the other 14.5 seconds. Without reading material its quality fell from 0.95 to 0.10.</p>
+    <a class="textlink" href="{{ 'BENCHMARKS/' | url }}">See the benchmarks
+      <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16"><path d="M3 8h10M9 4l4 4-4 4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></a>
+  </div>
+  <div class="panel tall reveal">
+    <div class="group">
+      <span class="group-title">Time per answer, same model</span>
+      <div class="bars">
+        <div class="bar"><div class="bar-label"><span>Gemma 31B on SAIA</span><span class="v best">230 ms</span></div><div class="track"><div class="fill best" style="width: 1.6%"></div></div></div>
+        <div class="bar"><div class="bar-label"><span>Gemma 31B on NVIDIA</span><span class="v">14,516 ms</span></div><div class="track"><div class="fill" style="width: 100%"></div></div></div>
+      </div>
+    </div>
+    <div class="group">
+      <span class="group-title">Answer quality</span>
+      <div class="bars">
+        <div class="bar"><div class="bar-label"><span>Gemma 31B, best paragraph given</span><span class="v best">0.95</span></div><div class="track"><div class="fill best" style="width: 95%"></div></div></div>
+        <div class="bar"><div class="bar-label"><span>Llama 8B, best paragraph given</span><span class="v">0.33</span></div><div class="track"><div class="fill" style="width: 33%"></div></div></div>
+        <div class="bar"><div class="bar-label"><span>Gemma 31B, no reading material</span><span class="v">0.10</span></div><div class="track"><div class="fill low" style="width: 10%"></div></div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="wrap section">
+  <div class="status reveal">
+    <div class="status-head">
+      <div class="eyebrow">Where it stands</div>
+      <h2 class="display">An honest status report.</h2>
+    </div>
+    <ul>
+      <li>Alpha-stage research library, MIT licensed, with about 250 tests.</li>
+      <li>Trying every combination is complete and dependable.</li>
+      <li>For spaces too large to try in full, its search currently finds the best setup in about as many calls as random picking.</li>
+      <li>Pipelines are straight chains of steps; branching pipelines are not searched.</li>
+    </ul>
+  </div>
+</section>
+
+<section class="wrap section">
+  <div class="between reveal">
+    <div class="head">
+      <div class="eyebrow">Open source</div>
+      <h2 class="display">Built in the open. Contributions welcome.</h2>
+      <p class="lead">ChatCortex is MIT licensed and developed on GitHub. Ideas, bug reports and pull requests are all welcome, whatever their size.</p>
+    </div>
+    <div class="row">
+      <a class="btn btn-primary" href="{{ config.repo_url }}/blob/main/CONTRIBUTING.md">How to contribute</a>
+      <a class="btn btn-ghost" href="{{ config.repo_url }}/issues/new/choose">Open an issue</a>
+    </div>
+  </div>
+  <div class="grid">
+    <div class="card reveal"><h3>Add a provider</h3><p>One row in a table: a base URL, a key name and a default model.</p></div>
+    <div class="card reveal"><h3>Write a scorer</h3><p>A function that grades an answer from 0 to 1, for a task the built-in scorers miss.</p></div>
+    <div class="card reveal"><h3>Share a result</h3><p>Ran it on your own questions? Tell us what won, and what surprised you.</p></div>
+    <div class="card reveal"><h3>Improve the search</h3><p>The open research problem: beat random picking when the space is too large to try in full.</p></div>
+  </div>
+</section>
+
+<section class="wrap section">
+  <div class="cta reveal">
+    <div class="cta-copy">
+      <h2 class="display">Try it on your own questions.</h2>
+      <p>A free API key and a handful of questions are enough for a first answer.</p>
+      <a class="btn btn-dark" href="{{ 'GUIDE/' | url }}">Read the guide</a>
+    </div>
+    <div class="cmds">
+      <div class="cmd"><b>1</b><span>pip install "chatcortex[real]"</span></div>
+      <div class="cmd"><b>2</b><span>git clone https://github.com/siddharth1012/chatCortex</span></div>
+      <div class="cmd"><b>3</b><span>python examples/pick_models.py</span></div>
+    </div>
+  </div>
+</section>
+</main>
+
+<footer class="wrap">
+  <span>ChatCortex · MIT licensed · developed by Siddharth Saraswat</span>
+  <nav aria-label="Footer">
+    <a href="{{ config.repo_url }}">GitHub</a>
+    <a href="https://pypi.org/project/chatcortex/">PyPI</a>
+    <a href="{{ config.repo_url }}/blob/main/CHANGELOG.md">Changelog</a>
+  </nav>
+</footer>
+
+<script>
+(function () {
+  var items = document.querySelectorAll('.reveal');
+  if (!('IntersectionObserver' in window)) {
+    items.forEach(function (el) { el.classList.add('in'); });
+    return;
+  }
+  var observer = new IntersectionObserver(function (entries) {
+    entries.forEach(function (entry) {
+      if (entry.isIntersecting) { entry.target.classList.add('in'); observer.unobserve(entry.target); }
+    });
+  }, { threshold: 0.15 });
+  items.forEach(function (el) { observer.observe(el); });
+  // Never leave content hidden: if nothing has been revealed shortly
+  // after load (a background tab, an embedded preview), show everything.
+  window.setTimeout(function () {
+    if (!document.querySelector('.reveal.in')) {
+      items.forEach(function (el) { el.classList.add('in'); });
+    }
+  }, 1500);
+})();
+</script>
+</body>
+</html>

@@ -7,6 +7,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 - A project website at https://siddharth1012.github.io/chatCortex/, built from `docs/` with MkDocs: a home page, the get-started guide, a new "Using ChatCortex from Python" page (`docs/USAGE.md`), the architecture notes and the benchmarks. A `docs` extra installs the site tooling
+- The website has a new dark design: a custom home page (`overrides/home.html`) with measured results, a contributions section and restrained motion that is off for visitors who prefer reduced motion, and matching styling for the docs pages (`docs/stylesheets/site.css`)
 
 ### Changed
 - README rewritten around what a newcomer can do in five minutes, with a measured result up front; the per-feature detail moved to `docs/USAGE.md`
