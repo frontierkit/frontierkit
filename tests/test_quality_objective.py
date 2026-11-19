@@ -206,3 +206,60 @@ def test_without_quality_measurements_the_search_is_unchanged():
     assert all(c.total_quality == 1.0 for c in frontier)
     keys = [(c.total_cost, c.total_latency, c.total_reliability) for c in frontier]
     assert keys == sorted(set(keys))
+
+
+# --- exploration ----------------------------------------------------------
+
+
+def _run_exploring(iterations, explore):
+    registry, task, executor, eval_set, calls = _loop_setup()
+    records = run_closed_loop(
+        registry=registry,
+        task=task,
+        synthesizer=lambda reg: ExhaustiveSynthesizer(reg, keep_ties=True),
+        executor=executor,
+        iterations=iterations,
+        prior_strength=1.0,
+        eval_set=eval_set,
+        explore=explore,
+    )
+    return records, calls
+
+
+def test_explore_scores_untried_pipelines_until_none_are_left():
+    records, calls = _run_exploring(iterations=6, explore=1)
+    scored = {e.components for r in records for e in r.evaluations}
+    assert len(scored) == 4  # the whole 2 x 2 space
+    assert all(r.explored_candidates <= 1 for r in records)
+    assert records[-1].explored_candidates == 0  # nothing untried remains
+    assert len(calls) == len(set(calls))  # still never re-run
+
+
+def test_a_large_explore_covers_the_space_in_the_first_round():
+    records, _ = _run_exploring(iterations=1, explore=100)
+    assert len({e.components for e in records[0].evaluations}) == 4
+    assert records[0].to_dict()["explored_candidates"] == records[0].explored_candidates
+
+
+def test_explore_is_off_by_default():
+    records, _ = _run(3)
+    assert all(r.explored_candidates == 0 for r in records)
+
+
+@pytest.mark.parametrize("bad", [-1, 1.5, True])
+def test_explore_must_be_a_non_negative_int(bad):
+    registry, task, executor, eval_set, _ = _loop_setup()
+    with pytest.raises(ValueError, match="explore"):
+        run_closed_loop(
+            registry=registry, task=task, synthesizer=ExhaustiveSynthesizer,
+            executor=executor, eval_set=eval_set, explore=bad,
+        )
+
+
+def test_explore_needs_an_eval_set():
+    registry, task, executor, _, _ = _loop_setup()
+    with pytest.raises(ValueError, match="eval_set"):
+        run_closed_loop(
+            registry=registry, task=task, synthesizer=ExhaustiveSynthesizer,
+            executor=executor, explore=1,
+        )

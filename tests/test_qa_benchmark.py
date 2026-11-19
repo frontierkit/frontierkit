@@ -23,6 +23,7 @@ from benchmarks.qa_frontier.replay import (
     Replay,
     at_budget,
     chatcortex_strategy,
+    compare,
     complete_models,
     grid_strategy,
     random_strategy,
@@ -239,3 +240,14 @@ def test_at_budget_is_zero_before_anything_is_affordable():
 def test_complete_models_excludes_partly_collected_ones(tmp_path):
     cache, _, _ = _collect(tmp_path, env={"KEY_P1": "k1"})
     assert [m.name for m in complete_models(_questions(), cache, MODELS)] == ["fast"]
+
+
+def test_compare_adds_a_row_per_explore_value(tmp_path):
+    replay = _replay(tmp_path)
+    strategies, _ = compare(replay, explore_values=(0, 1, 3), iterations=3)
+    assert list(strategies) == [
+        "grid", "random (mean of 20)", "chatcortex",
+        "chatcortex, explore 1", "chatcortex, explore 3",
+    ]
+    coverage, best = strategies["chatcortex, explore 3"](replay.total_calls)
+    assert 0.0 <= coverage <= 1.0 and 0.0 <= best <= 1.0

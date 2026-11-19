@@ -14,8 +14,10 @@ Strategies:
   synthesizes a frontier from the registry, with measured quality as an
   objective, scores the pipelines it has not scored yet, and calibrates
   the registry from what it measured. Look-alike pipelines are all kept.
-- chatcortex, ties merged: the same loop keeping only one of several
-  pipelines with identical predicted numbers.
+- chatcortex, explore N: the same loop also scoring the N untried
+  pipelines with the highest predicted quality each round, so it keeps
+  looking after its frontier is fully scored. --explore sets the values
+  shown (default 1, 2 and 4).
 
 The score at a budget is coverage: the share of the true quality frontier
 (found by scoring every pipeline) that the strategy's own frontier
@@ -147,6 +149,7 @@ def chatcortex_strategy(
     iterations: int = 8,
     prior_strength: float = 20.0,
     keep_ties: bool = True,
+    explore: int = 0,
 ) -> List[Point]:
     """ChatCortex's closed loop with an eval set; a point per round."""
     contexts, answers, posts, functions = build_components(replay.questions, replay.models)
@@ -168,6 +171,7 @@ def chatcortex_strategy(
         iterations=iterations,
         prior_strength=prior_strength,
         eval_set=eval_set_for(replay.questions),
+        explore=explore,
     )
     tried: List[Components] = []
     points = []
@@ -187,12 +191,18 @@ def at_budget(points: Sequence[Point], budget: int) -> Point:
     return max(affordable, key=lambda p: (p.coverage, p.best_quality, -p.calls))
 
 
-def compare(replay: Replay) -> Dict[str, Callable[[int], Tuple[float, float]]]:
+def compare(
+    replay: Replay, explore_values: Sequence[int] = (2,), iterations: int = 12
+) -> Dict[str, Callable[[int], Tuple[float, float]]]:
     """Strategy name -> f(budget) giving (coverage, best quality found)."""
     grid = grid_strategy(replay)
     randoms = [random_strategy(replay, seed) for seed in RANDOM_SEEDS]
-    loop = chatcortex_strategy(replay)
-    collapsed = chatcortex_strategy(replay, keep_ties=False)
+    loop = chatcortex_strategy(replay, iterations=iterations)
+    exploring = {
+        n: chatcortex_strategy(replay, iterations=iterations, explore=n)
+        for n in explore_values
+        if n > 0
+    }
 
     def single(points):
         def at(budget):
@@ -208,12 +218,14 @@ def compare(replay: Replay) -> Dict[str, Callable[[int], Tuple[float, float]]]:
             sum(p.best_quality for p in points) / len(points),
         )
 
-    return {
+    strategies = {
         "grid": single(grid),
         "random (mean of 20)": averaged,
         "chatcortex": single(loop),
-        "chatcortex, ties merged": single(collapsed),
-    }, loop
+    }
+    for n, points in exploring.items():
+        strategies[f"chatcortex, explore {n}"] = single(points)
+    return strategies, loop
 
 
 def main(argv=None) -> int:
@@ -222,7 +234,12 @@ def main(argv=None) -> int:
     parser.add_argument("--questions", type=int, default=None)
     parser.add_argument("--seed", type=int, default=0)
     parser.add_argument("--cache", default=str(DEFAULT_CACHE))
+    parser.add_argument(
+        "--explore", default="1,2,4",
+        help="comma-separated explore values for extra ChatCortex rows",
+    )
     args = parser.parse_args(argv)
+    explore_values = [int(v) for v in args.explore.split(",") if v.strip()]
 
     questions = load_questions(args.data, limit=args.questions, seed=args.seed)
     cache = ResponseCache(args.cache)
@@ -235,7 +252,7 @@ def main(argv=None) -> int:
         return 0
 
     replay = Replay(questions, cache, models)
-    strategies, loop = compare(replay)
+    strategies, loop = compare(replay, explore_values)
     total = replay.total_calls
     print(
         f"{len(questions)} questions, {len(models)} models "
@@ -247,7 +264,7 @@ def main(argv=None) -> int:
     )
     print()
     print("Share of the true frontier found, and best quality found, within a call budget")
-    header = f"  {'strategy':22s}" + "".join(
+    header = f"  {'strategy':24s}" + "".join(
         f"{f'{int(f * 100)}% ({round(total * f)})':>18s}" for f in BUDGET_FRACTIONS
     )
     print(header)
@@ -256,11 +273,11 @@ def main(argv=None) -> int:
         for fraction in BUDGET_FRACTIONS:
             coverage, best = at(round(total * fraction))
             cells += f"{f'{coverage:.2f} / {best:.3f}':>18s}"
-        print(f"  {name:22s}{cells}")
+        print(f"  {name:24s}{cells}")
     print()
     final = loop[-1]
     print(
-        f"ChatCortex's loop stopped after {final.calls} calls "
+        f"Without exploration, ChatCortex's loop stopped after {final.calls} calls "
         f"({final.calls / total:.0%} of the grid) with coverage {final.coverage:.2f} "
         f"and best quality {final.best_quality:.3f}."
     )

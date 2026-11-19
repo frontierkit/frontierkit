@@ -228,6 +228,11 @@ records = run_closed_loop(
 of one of them, so look-alike alternatives (two context options with the same
 declared latency, say) all get measured.
 
+Once every pipeline on the predicted frontier has been scored, the loop stops
+trying new ones, even if an untried one would be better. `explore=N` also scores
+the `N` untried pipelines with the highest predicted quality each round, so it
+keeps looking at the price of more calls.
+
 ```bash
 python examples/scored_pipeline.py
 ```

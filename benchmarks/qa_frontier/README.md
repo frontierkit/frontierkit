@@ -44,7 +44,7 @@ python -m benchmarks.qa_frontier.replay
 
 It reports, for a range of call budgets, how much of the true frontier each
 strategy has found: trying every pipeline in order, trying them at random, and
-ChatCortex's closed loop with an eval set (with and without `keep_ties`). A call is one distinct
+ChatCortex's closed loop with an eval set, without and with exploration. A call is one distinct
 (model, prompt) pair.
 
 Pass the same `--data`, `--questions` and `--seed` to every command.

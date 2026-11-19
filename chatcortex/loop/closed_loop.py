@@ -32,7 +32,9 @@ estimate for a component is then its declared value pulled toward the
 mean of everything observed, by exactly as much as the evidence supports.
 """
 
+import itertools
 import math
+import random
 from dataclasses import dataclass, field
 from typing import Any, Callable, Dict, List, Optional, Union
 
@@ -42,6 +44,9 @@ from chatcortex.evaluation.eval_set import (
     evaluate_pipelines,
 )
 from chatcortex.execution.executor import AgentExecutor
+from chatcortex.graph.agent_graph import AgentGraph
+from chatcortex.graph.node_ids import node_id_for
+from chatcortex.optimization.architecture_candidate import ArchitectureCandidate
 from chatcortex.registry.capability_registry import CapabilityRegistry
 from chatcortex.synthesis.base import Synthesizer
 from chatcortex.synthesis.budget import SynthesisBudget
@@ -72,6 +77,8 @@ class LoopIteration:
     # One entry per executed pipeline when the loop ran with an eval_set;
     # empty otherwise.
     evaluations: List[PipelineEvaluation] = field(default_factory=list)
+    # Untried pipelines scored this round beyond the frontier (``explore``).
+    explored_candidates: int = 0
 
     def to_dict(self) -> dict:
         """JSON-safe record including the calibrated registry snapshot."""
@@ -85,6 +92,7 @@ class LoopIteration:
             "traces": [dict(trace) for trace in self.traces],
             "registry_snapshot": self.registry.to_dict(),
             "evaluations": [e.to_dict() for e in self.evaluations],
+            "explored_candidates": self.explored_candidates,
         }
 
 
@@ -123,6 +131,7 @@ def run_closed_loop(
     eval_set: Optional[EvalSet] = None,
     budget: Optional[SynthesisBudget] = None,
     candidates_per_iteration: Optional[int] = None,
+    explore: int = 0,
 ) -> List[LoopIteration]:
     """Run the synthesize -> execute -> calibrate cycle ``iterations`` times.
 
@@ -159,6 +168,12 @@ def run_closed_loop(
             again; its earlier evaluation is reused. Build the
             synthesizer with ``keep_ties=True`` (``ExhaustiveSynthesizer``)
             so look-alike alternatives are all tried.
+        explore: With an ``eval_set``, also score this many untried
+            pipelines per round beyond the frontier: those with the highest
+            predicted quality, then the lowest predicted latency. Without
+            it the loop stops trying new pipelines once every frontier
+            member has been scored, even if an untried one would be
+            better. ``0`` (default) disables it.
         candidates_per_iteration: Execute only the first ``N`` frontier
             members (objective-sorted, deterministic) instead of all of
             them; useful when executions are expensive. Must be ``>= 1``
@@ -193,6 +208,10 @@ def run_closed_loop(
         )
     if not math.isfinite(alpha) or alpha < 0.0 or alpha > 1.0:
         raise ValueError(f"alpha must be in [0.0, 1.0], {alpha!r} given")
+    if isinstance(explore, bool) or not isinstance(explore, int) or explore < 0:
+        raise ValueError(f"explore must be an int >= 0, {explore!r} given")
+    if explore and eval_set is None:
+        raise ValueError("explore needs an eval_set: untried pipelines are judged by score")
     if prior_strength is not None and (
         not math.isfinite(prior_strength) or prior_strength < 0.0
     ):
@@ -220,6 +239,27 @@ def run_closed_loop(
                 frontier,
                 key=lambda c: (c.total_cost, c.total_latency, -c.total_reliability),
             )[:candidates_per_iteration]
+
+        explored = 0
+        if explore:
+            chosen = {_components(c) for c in selected}
+            untried = [
+                c
+                for c in _enumerate(current, task, seed=iteration)
+                if _components(c) not in scored and _components(c) not in chosen
+            ]
+            untried.sort(
+                key=lambda c: (
+                    -c.total_quality,
+                    c.total_latency,
+                    c.total_cost,
+                    -c.total_reliability,
+                    _components(c),
+                )
+            )
+            extra = untried[:explore]
+            explored = len(extra)
+            selected = list(selected) + extra
 
         traces: List[Dict[str, Any]] = []
         evaluations: List[PipelineEvaluation] = []
@@ -276,10 +316,53 @@ def run_closed_loop(
                 registry=calibrated,
                 prior_registry=current,
                 evaluations=evaluations,
+                explored_candidates=explored,
             )
         )
         current = calibrated
     return records
+
+
+# Above this many pipelines, exploration samples the space instead of
+# listing all of it.
+EXPLORE_ENUMERATION_LIMIT = 20_000
+
+
+def _enumerate(
+    registry: CapabilityRegistry, task: TaskSpecification, seed: int
+) -> List[ArchitectureCandidate]:
+    """Every feasible chain for ``task``, or a seeded sample of them."""
+    options = [
+        registry.get_by_capability(capability, task.privacy_constraint)
+        for capability in task.required_capabilities
+    ]
+    size = math.prod(len(o) for o in options)
+    if size <= EXPLORE_ENUMERATION_LIMIT:
+        combos = itertools.product(*options)
+    else:
+        rng = random.Random(seed)
+        combos = (
+            tuple(rng.choice(o) for o in options)
+            for _ in range(EXPLORE_ENUMERATION_LIMIT)
+        )
+    candidates = []
+    for combo in combos:
+        graph = AgentGraph()
+        for stage, metadata in enumerate(combo):
+            graph.chain_append(node_id_for(metadata.name, stage), metadata)
+        candidate = ArchitectureCandidate(
+            graph=graph,
+            total_cost=graph.total_cost(),
+            total_latency=graph.total_latency(),
+            total_reliability=graph.aggregate_reliability(),
+            total_quality=graph.aggregate_quality(),
+        )
+        if task.max_cost is not None and candidate.total_cost > task.max_cost:
+            continue
+        if task.max_latency is not None and candidate.total_latency > task.max_latency:
+            continue
+        candidates.append(candidate)
+    return candidates
 
 
 def _components(candidate) -> tuple:
