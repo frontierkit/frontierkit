@@ -3,7 +3,7 @@
 All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
-## [Unreleased]
+## [0.10.0] - 2026-11-19
 
 ### Added
 - **Measured quality as a search objective** — `ComponentMetadata.quality_score` (optional, `None` until measured) holds an estimated answer quality in `[0, 1]`; `AgentGraph.aggregate_quality()` multiplies it across a pipeline, counting unmeasured components as 1.0; `ArchitectureCandidate.total_quality` carries it, and Pareto dominance now maximises it alongside cost, latency and reliability. With nothing measured every candidate has quality 1.0, so synthesis results are unchanged (the benchmark tables regenerate identically)
