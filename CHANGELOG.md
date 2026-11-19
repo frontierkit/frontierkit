@@ -3,6 +3,14 @@
 All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased]
+
+### Added
+- A project website at https://siddharth1012.github.io/chatCortex/, built from `docs/` with MkDocs: a home page, the get-started guide, a new "Using ChatCortex from Python" page (`docs/USAGE.md`), the architecture notes and the benchmarks. A `docs` extra installs the site tooling
+
+### Changed
+- README rewritten around what a newcomer can do in five minutes, with a measured result up front; the per-feature detail moved to `docs/USAGE.md`
+
 ## [0.10.1] - 2026-11-19
 
 ### Added
