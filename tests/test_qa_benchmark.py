@@ -5,7 +5,7 @@ Runs on the bundled sample with stub model callers: no keys, no network.
 
 import pytest
 
-from benchmarks.qa_frontier.collect import collect
+from benchmarks.qa_frontier.collect import ask_for_keys, collect
 from benchmarks.qa_frontier.qa import (
     CONTEXT_VARIANTS,
     SAMPLE_DATA,
@@ -251,3 +251,22 @@ def test_compare_adds_a_row_per_explore_value(tmp_path):
     ]
     coverage, best = strategies["chatcortex, explore 3"](replay.total_calls)
     assert 0.0 <= coverage <= 1.0 and 0.0 <= best <= 1.0
+
+
+def test_ask_for_keys_fills_only_missing_keys(monkeypatch):
+    for var in ("SAIA_API_KEY", "NVIDIA_API_KEY", "GROQ_API_KEY", "OPENROUTER_API_KEY"):
+        monkeypatch.delenv(var, raising=False)
+    monkeypatch.setenv("GROQ_API_KEY", "already-set")
+    asked = []
+
+    def prompt(text):
+        asked.append(text.split()[0])
+        return "typed-key" if text.startswith("SAIA") else ""
+
+    ask_for_keys(prompt)
+    import os
+
+    assert asked == ["SAIA_API_KEY", "NVIDIA_API_KEY", "OPENROUTER_API_KEY"]
+    assert os.environ["SAIA_API_KEY"] == "typed-key"
+    assert "NVIDIA_API_KEY" not in os.environ
+    assert os.environ["GROQ_API_KEY"] == "already-set"

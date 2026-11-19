@@ -17,6 +17,7 @@ to continue. Only free models are used.
 """
 
 import argparse
+import getpass
 import os
 import sys
 import time
@@ -140,6 +141,16 @@ def collect(
     return summary
 
 
+def ask_for_keys(prompt=getpass.getpass) -> None:
+    """Prompt for each missing key; it lives only in this process."""
+    for key_var in dict.fromkeys(spec.key_var for spec in FREE_MODELS):
+        if os.environ.get(key_var):
+            continue
+        value = prompt(f"{key_var} (input hidden, Enter to skip): ").strip()
+        if value:
+            os.environ[key_var] = value
+
+
 def main(argv=None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     parser.add_argument("--data", default=str(SQUAD_SUBSET), help="SQuAD-format JSON file")
@@ -147,7 +158,14 @@ def main(argv=None) -> int:
     parser.add_argument("--seed", type=int, default=0, help="sampling seed")
     parser.add_argument("--budget", type=int, default=None, help="max calls this run")
     parser.add_argument("--cache", default=str(DEFAULT_CACHE), help="response cache file")
+    parser.add_argument(
+        "--ask-keys", action="store_true",
+        help="prompt for keys that are not set; typing is hidden and nothing is saved",
+    )
     args = parser.parse_args(argv)
+
+    if args.ask_keys:
+        ask_for_keys()
 
     if not any(os.environ.get(spec.key_var) for spec in FREE_MODELS):
         print(__doc__)
