@@ -3,7 +3,7 @@
 All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
-## [Unreleased]
+## [0.10.1] - 2026-11-19
 
 ### Added
 - **Guide: pick the best models for your questions, for free** (`docs/GUIDE.md`) with a runnable script, `examples/pick_models.py`: it tries every combination of prompt style, context and free model on a CSV of your questions, scores the answers, and recommends a setup. Calls are spaced per provider for free-tier limits; models that fail a test call are skipped with the vendor's error and the model names the key can use
