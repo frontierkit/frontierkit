@@ -58,8 +58,14 @@ real = [
     "openai>=2.48"
 ]
 
+docs = [
+    "mkdocs-material>=9.5,<10",
+    "mkdocs<2"
+]
+
 [project.urls]
-Homepage = "https://github.com/siddharth1012/chatCortex"
+Homepage = "https://siddharth1012.github.io/chatCortex/"
+Documentation = "https://siddharth1012.github.io/chatCortex/"
 Repository = "https://github.com/siddharth1012/chatCortex"
 Issues = "https://github.com/siddharth1012/chatCortex/issues"
 
