@@ -3,7 +3,7 @@
 All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
-## [Unreleased]
+## [0.13.1] - 2026-11-21
 
 ### Changed
 - **The website has a new identity.** A new logo: three setups nothing beats, joined by the frontier, with one beaten setup below. The home page (`overrides/home.html`) is rebuilt around a frontier chart that moves continuously, the 30-question results drawn as range bars with a verdict for each setup, and the same content as the README. Motion stops for visitors who prefer reduced motion
