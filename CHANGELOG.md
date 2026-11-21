@@ -3,6 +3,11 @@
 All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased]
+
+### Changed
+- README rewritten around what sets the library apart: a headline table from the 30-question benchmark with a likely range for every score and a verdict against the best setup, a "What it does" section covering margins of error, the answer log, the decision record, `verify` and named failures, two commands that run without an API key, and a snippet that shows the paired verdict and saving a decision
+
 ## [0.13.0] - 2026-11-21
 
 ### Changed
