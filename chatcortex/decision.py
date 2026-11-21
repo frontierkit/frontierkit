@@ -9,7 +9,9 @@ that comparison into a small JSON document that says:
 - how sure the result is: a range for every score, each pipeline
   compared with the chosen one example by example, and the chosen
   pipeline's score corrected for having been picked from many;
-- what failed along the way, by kind.
+- what failed along the way, by kind;
+- the chosen pipeline's score and time on every example, which is what
+  :func:`~chatcortex.verify_decision` later compares a fresh run with.
 
 ::
 
@@ -35,7 +37,7 @@ from .stats.intervals import mean_interval, paired_difference
 from .stats.selection import best_of
 from .store.answer_log import identify
 
-FORMAT = 1
+FORMAT = 2
 
 
 def _eval_set_hash(eval_set: EvalSet) -> Optional[str]:
@@ -237,6 +239,12 @@ def record_decision(
 
     from . import __version__
 
+    chosen_entry = entry(chosen_index)
+    chosen_entry["examples"] = {
+        "scores": list(picked.scores),
+        "latencies_ms": list(picked.latencies),
+    }
+
     by_index: Dict[int, List[str]] = {
         index: list(evaluation.components) for index, evaluation in enumerate(evaluations)
     }
@@ -254,7 +262,7 @@ def record_decision(
         },
         "confidence": confidence,
         "method": method,
-        "chosen": entry(chosen_index),
+        "chosen": chosen_entry,
         "selection": {
             "candidates": selection.candidates,
             "best": list(best),

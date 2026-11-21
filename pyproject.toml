@@ -73,6 +73,7 @@ Issues = "https://github.com/siddharth1012/chatCortex/issues"
 Changelog = "https://github.com/siddharth1012/chatCortex/blob/main/CHANGELOG.md"
 
 [project.scripts]
+chatcortex = "chatcortex.cli:main"
 chatcortex-registry = "chatcortex.registry.cli:main"
 
 # -----------------------------

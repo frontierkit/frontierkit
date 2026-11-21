@@ -246,6 +246,66 @@ the part to quote when two approaches must be shown to have run on the same
 model with the same settings. The file also holds a fingerprint of the
 examples, the scorer's name and the corrected score of the best pipeline.
 
+### Check that the choice still holds
+
+A model behind an API can change, slow down or be retired without notice.
+`verify_decision` runs the chosen pipeline again on the same examples and
+compares the fresh run with the saved record:
+
+```python
+from chatcortex import load_decision, verify_decision
+
+decision = load_decision("decision.json")
+check = verify_decision(decision, pipelines, executor, eval_set)
+check.status     # "valid", "quality_dropped", "slower", "unavailable" or "not_comparable"
+check.message    # one sentence saying what was found
+```
+
+| Status | Meaning |
+|---|---|
+| `valid` | No drop in quality was found, and it is not slower |
+| `quality_dropped` | The same examples now score lower, by more than the tolerance and more than chance could explain |
+| `slower` | Quality held, but most runs take more than twice the recorded time |
+| `unavailable` | The service refused, timed out, or no longer knows the model |
+| `not_comparable` | Other examples, a missing pipeline, or a step that now runs on a different model or endpoint |
+
+Things to know:
+
+- **It stops early.** Examples are asked one at a time and the check ends as
+  soon as the result is settled, so a clear drop costs a fraction of the calls.
+- **`valid` has two strengths.** `check.confirmed` is true when the change was
+  shown to be within the tolerance. Otherwise no drop was found with the
+  examples there are, and `check.detectable` says how big a drop would have
+  gone unnoticed.
+- **Few examples catch only large drops.** About 30 examples catch a drop of
+  0.5, 100 catch 0.3, and 300 catch 0.15, when the model's answers are
+  otherwise stable. If answers vary from run to run, it takes more.
+- **Tolerance and strictness.** `tolerance=0.05` is the drop you accept;
+  `confidence=0.99` is how sure the check must be. `slower_factor=2.0` and
+  `max_latency_ms=` set what counts as slow.
+- **It asks the model again.** With a `LoggedBackend`, earlier answers are not
+  reused; the fresh ones are written to the same file under their own label.
+  Put the `LoggedBackend` on the outside of any other backend for this to work.
+
+To run it on a schedule, put what you compared in a Python file:
+
+```python
+# compare.py
+def setup():
+    return {"pipelines": pipelines, "executor": executor, "eval_set": eval_set}
+```
+
+```bash
+chatcortex verify decision.json --setup compare.py
+```
+
+The exit code is 0 for valid, 1 for a quality drop, 3 for slower, 4 for
+unavailable and 5 for not comparable, so a scheduled job or CI step fails
+when the choice stops holding. Each check is appended to
+`decision.history.jsonl`. Each run is a separate test: at the default
+strictness, expect about one false alarm in a hundred runs when nothing has
+changed. `examples/verify_decision.py` shows all of this offline.
+
 ### Look at each example
 
 `quality` is a mean. Each evaluation also keeps what happened on every
