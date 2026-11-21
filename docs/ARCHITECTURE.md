@@ -1,237 +1,162 @@
-# FrontierKit Architecture
+# How FrontierKit works
 
-FrontierKit is a research framework for **automated synthesis and evaluation of AI agent architectures** under multi-objective constraints.
+FrontierKit answers one question: of the setups you could use, which one should
+you use, and how sure can you be? A setup is a pipeline: one choice for each
+step, such as a way of finding context, a prompt and a model.
 
-The system treats agent design as an **architecture search problem**, where candidate pipelines are generated, evaluated, and compared across multiple objectives.
+It gets there in stages. You describe your questions and your options, it runs
+every pipeline on every question, scores the answers, works out what the scores
+can and cannot tell apart, and keeps the pipelines nothing beats. The choice can
+be written down and checked again later.
 
----
+```mermaid
+flowchart TD
+    questions["<b>Your questions</b><br>examples, a scorer, reference answers"]
+    options["<b>Your options</b><br>components in a registry, steps in a task"]
+    pipelines["<b>Pipelines</b><br>every combination, or a search"]
+    execution["<b>Execution</b><br>your functions and any model vendor"]
+    answers["<b>Answer log</b><br>every reply kept, none paid for twice"]
+    evaluation["<b>Evaluation</b><br>a score per example, failures named"]
+    statistics["<b>Statistics</b><br>ranges, paired comparisons, best of many"]
+    frontier["<b>Frontier</b><br>the pipelines nothing beats"]
+    decision["<b>Decision record</b><br>what was chosen, and on what evidence"]
+    recheck["<b>Verify</b><br>the chosen pipeline, run again weeks later"]
 
-# High-Level Architecture
-
-The framework is organized into layered components.
-
-TaskSpecification
-↓
-CapabilityRegistry
-↓
-Synthesis Engine
-↓
-AgentGraph
-↓
-Execution Engine
-↓
-Telemetry
-↓
-Evaluation Harness
-↓
-Pareto Optimization
-
-Each layer isolates a specific concern in the architecture synthesis process.
-
----
-
-# TaskSpecification
-
-Defines the **architecture synthesis problem**.
-
-A task includes:
-
-* required capabilities
-* hard constraints (cost, latency, privacy)
-* objective weights
-
-Example:
-
-```python
-task = TaskSpecification(
-    required_capabilities=[
-        "retrieval",
-        "generation",
-        "verification"
-    ],
-    max_cost=0.01,
-    max_latency=2000
-)
+    options --> pipelines --> execution --> evaluation --> statistics --> frontier --> decision --> recheck
+    questions --> evaluation
+    execution <--> answers
 ```
 
-The task definition specifies **what capabilities must be satisfied**, but does not define how they are implemented.
+## What you describe
 
----
+- A **component** is one option for one step: a model, a prompt template, a
+  retriever. `ComponentMetadata` describes it, with the step it can fill and
+  starting guesses for its cost, speed and reliability.
+- A **registry** (`CapabilityRegistry`) holds the components. It can be saved
+  to and loaded from a JSON file, and `frontierkit-registry validate` checks
+  such a file.
+- A **task** (`TaskSpecification`) names the steps a pipeline needs, in order,
+  with optional limits on cost, latency and privacy.
+- An **eval set** (`EvalSet`) holds your examples and how to grade an answer.
 
-# CapabilityRegistry
+The declared numbers are only starting guesses. Everything that follows is
+measured.
 
-The registry stores all available system components.
+## Pipelines
 
-Each component declares:
+A pipeline is one component per step, run as a straight chain (`AgentGraph`).
 
-* capability type
-* cost
-* latency
-* reliability
-* privacy level
+- `enumerate_pipelines` lists every pipeline the task allows, and
+  `count_pipelines` says how many that is before any call is made. Trying them
+  all is the dependable way.
+- When there are too many to try, `run_closed_loop` chooses which to score next
+  from the scores it has seen. On the project's benchmark it currently finds
+  the best pipeline in about as many calls as picking at random.
+- The synthesizers (`ExhaustiveSynthesizer`, `ProgressiveParetoBeamSynthesizer`
+  and others) search on declared numbers alone, without running anything.
+  [Benchmarks](BENCHMARKS.md) compares them.
 
-The registry supports:
+## Execution
 
-* capability lookup
-* constraint filtering
-* component discovery
+`AgentExecutor` runs a pipeline step by step, handing each step's output to the
+next. A backend decides how a step runs:
 
-Registries can also be materialized from a JSON document with
-**`load_registry(path)`** (`frontierkit.registry.loader`). Every row is
-validated — costs, latency, and the reliability range; component type,
-privacy, and capability vocabulary — and validation failures name the
-row and field (e.g. `components[2].reliability_score out of range`).
-`CapabilityRegistry.to_dict()` emits the same document shape, so
-registries round-trip through JSON. They also ship as packs:
-`save_registry(registry, path)` (`frontierkit.registry.package`) writes
-that same shape and proves the round-trip by reloading the file, and
-`validate_registry_file(path)` returns a structured report — component
-count, per-row field issues, duplicate names — without raising. The
-`frontierkit-registry validate <file>` console command wraps the report,
-exiting 0 only for a fully valid pack.
+| Backend | What it runs |
+|---|---|
+| `CallableBackend` | Your own Python functions |
+| `OpenAIBackend` | Any vendor or local server that accepts OpenAI-style chat requests |
+| `RoutedBackend` | A different backend for each component, to mix vendors and functions |
+| `LoggedBackend` | Any of the above, with every answer written to an `AnswerLog` |
 
-Importantly, the registry **does not perform optimization**. It simply exposes valid components to the synthesis engine.
+Each step is timed and costed, and a pipeline stops at its first failed step. A
+failure is recorded as what it was: `rate_limited`, `timeout`, `unavailable`,
+`not_found`, `auth`, `empty_output`, `step_failed` or `error`.
 
----
+With an answer log, a step that was already answered is read back from the file
+instead of being called again. What makes two calls the same is what ran (the
+endpoint, model and request options, or a version you give your own function)
+and what it was asked.
 
-# AgentGraph
+Without a backend the executor simulates: steps succeed always, or with the
+probability their declared reliability gives. That mode exists to test search
+strategies and produces no answers to score.
 
-Agent architectures are represented as **Directed Acyclic Graphs (DAGs)**.
+## Evaluation
 
-Each node corresponds to a component instance.
+`evaluate_pipelines` runs every pipeline on every example and returns a
+`PipelineEvaluation` for each:
 
-Edges represent execution order.
+- `quality`: the mean score, counting a failed run as 0.
+- `scores`, `outputs`, `latencies` and `errors`: what happened on each example.
+- `cost`, `latency_ms` and `success_rate`: measured, not declared.
+- `metrics`: figures over the whole set, such as precision pooled over a corpus.
 
-System-level metrics are computed from node metadata:
+Scorers grade one answer against its reference. `exact_match`,
+`contains_answer` and `token_f1` cover short answers, and `triple_precision`,
+`triple_recall` and `triple_f1` cover extracted triples. Any function returning
+a number from 0 to 1 works.
 
-Total Cost
-Sum of component costs
+## Statistics
 
-Total Latency
-Sequential latency aggregation
+A score from a few dozen examples could easily have come out higher or lower.
 
-System Reliability
-Multiplicative aggregation of component success probabilities
+- `mean_interval` gives the range a quality plausibly lies in.
+- `paired_difference` compares two pipelines example by example and answers
+  "first is better", "second is better" or "too close to call".
+- `best_of` reports the winner among many with the luck of the pick taken out,
+  and lists the pipelines that cannot be told apart from it.
+- `metric_interval` gives a range for a figure over the whole set.
 
----
+The default method only assumes scores stay between known bounds. It is valid
+for any number of examples and stays valid when you look repeatedly as examples
+arrive. See [How sure is the result](USAGE.md#how-sure-is-the-result).
 
-# Synthesis Engine
+## Frontier
 
-The synthesis engine generates candidate architectures.
+`quality_frontier` keeps the pipelines that are not beaten. One pipeline beats
+another when it is at least as good on measured quality, cost and latency, and
+strictly better on one of them. What is left is the set of real trade-offs; the
+choice among them is yours.
 
-Implemented strategies include:
+## Decisions that can be checked
 
-HeuristicSynthesizer
-Greedy deterministic architecture construction.
+`record_decision` writes down which pipeline was chosen, what each step ran on,
+the range of every score, each pipeline compared with the chosen one, and the
+failures by kind. `verify_decision`, or `frontierkit verify` on the command
+line, runs the chosen pipeline again on the same examples and answers:
 
-RandomSynthesizer
-Random sampling baseline for stochastic exploration.
+| Status | Meaning |
+|---|---|
+| `valid` | No drop in quality was found, and it is not slower |
+| `quality_dropped` | The same examples now score lower, by more than chance explains |
+| `slower` | Quality held, but most runs take much longer |
+| `unavailable` | The service refused, timed out, or no longer knows the model |
+| `not_comparable` | Other examples, or a step that now runs on something else |
 
-BeamSynthesizer
-Width-constrained architecture search.
+## Declared numbers and measured ones
 
-ExhaustiveSynthesizer
-Enumerates the full architecture space to compute the exact Pareto frontier.
+`calibrate` blends what runs recorded into a new registry: a component seen a
+few times barely moves from its declared values, and one seen often converges
+on what was measured. `calibrate_quality` does the same for answer quality.
+`run_closed_loop` uses both between rounds.
 
-ParetoPartialBeamSynthesizer
-Beam search whose stage truncation keeps only Pareto-non-dominated partials, always retaining the cost, latency, and reliability extremes and filling remaining slots by crowding distance in objective space.
+## Where the code lives
 
-ProgressiveParetoBeamSynthesizer
-Introduces depth-aware beam widening to mitigate early-stage pruning bias.
+| Package | Holds |
+|---|---|
+| `frontierkit.registry` | Components, registries and registry files |
+| `frontierkit.synthesis` | Tasks, enumeration and the search strategies |
+| `frontierkit.graph` | A pipeline as a chain of components |
+| `frontierkit.execution`, `frontierkit.adapters` | The executor, backends and failure kinds |
+| `frontierkit.store` | The answer log |
+| `frontierkit.evaluation` | Eval sets, scorers and whole-set metrics |
+| `frontierkit.stats` | Ranges, paired comparisons and best of many |
+| `frontierkit.optimization` | Which pipelines beat which |
+| `frontierkit.telemetry`, `frontierkit.loop` | Calibration and the closed loop |
+| `frontierkit.decision`, `frontierkit.verify`, `frontierkit.cli` | Decision records and checking them |
 
----
+## Limits
 
-# Execution Engine
-
-The execution engine simulates architecture behavior.
-
-Two execution modes are supported.
-
-Deterministic Mode
-All components succeed. Used for structural validation.
-
-Probabilistic Mode
-Each component succeeds with probability equal to its reliability score.
-
-This allows empirical evaluation of system robustness.
-
-Optionally, `AgentExecutor(..., backend=...)` delegates each component
-call to a real execution backend — an `openai`-SDK chat-completions
-adapter ships behind the `frontierkit[real]` extra (see
-`ExecutionProtocol`). With a backend set, telemetry records the
-backend's *measured* latency, cost, and success instead of simulated
-values, and the chain still stops on the first failing component.
-
----
-
-# Telemetry
-
-Execution traces capture:
-
-* component execution order
-* latency
-* cost
-* success/failure status
-
-These logs support detailed experimental analysis.
-
-**Trace calibration** closes the loop:
-`frontierkit.telemetry.calibration.calibrate(registry, records, alpha)`
-blends empirical success/latency/cost from recorded traces back into a
-*new* immutable registry via `CapabilityRegistry.update()`:
-
-```
-new = alpha * empirical + (1 - alpha) * prior
-```
-
-Components without traces keep their declared priors, so the calibrated
-registry can feed straight back into synthesis.
-
----
-
-# Evaluation Harness
-
-The evaluation harness provides a controlled environment for comparing synthesis algorithms.
-
-Features:
-
-* multiple task definitions
-* multiple synthesizers
-* stochastic execution trials
-* reproducible experiments
-
-Metrics are aggregated across runs to estimate system performance.
-
----
-
-# Pareto Optimization
-
-FrontierKit computes **Pareto-optimal architectures** across:
-
-* cost
-* latency
-* reliability
-
-Dominance definition:
-
-Architecture A dominates B if:
-
-A.cost ≤ B.cost
-A.latency ≤ B.latency
-A.reliability ≥ B.reliability
-and at least one strict improvement.
-
-The resulting Pareto frontier represents the set of **optimal architecture trade-offs**.
-
----
-
-# Future Architecture Extensions
-
-Planned improvements include:
-
-* graph-structured agent synthesis
-* conditional execution nodes
-* real LLM and tool integrations
-* enterprise deployment optimization
-
-These extensions will expand the search space beyond linear pipelines to full **agent architecture graphs**.
+- Pipelines are straight chains of steps. Branching pipelines are not searched.
+- A few dozen examples can only separate large differences. The results say
+  what they cannot tell apart.

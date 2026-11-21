@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ## [Unreleased]
 
 ### Changed
+- **The website has a new identity.** A new logo: three setups nothing beats, joined by the frontier, with one beaten setup below. The home page (`overrides/home.html`) is rebuilt around a frontier chart that moves continuously, the 30-question results drawn as range bars with a verdict for each setup, and the same content as the README. Motion stops for visitors who prefer reduced motion
+- The website has a light theme as well as the dark one, on the home page and the docs pages, with a switch in the top bar. The choice is remembered and carries over between the home page and the docs
+- The "How it works" page is rewritten for the library as it is today, with a flowchart from your questions and options through execution, scoring and statistics to a decision that can be checked again. It described the earlier architecture-search project
+- The Benchmarks page now leads with the two benchmarks on real models, including the 30-question results with their ranges, and keeps the search-strategy tables as a separate section
+- **The changelog is a page of the website.** It shows this file and follows it on every build, and the site is rebuilt whenever this file changes. Links to the changelog from the README, the home page and the package metadata go there
+- The contributing guide, the citation title, the package description and keywords, and a few docstrings describe the project as it is today
 - README rewritten around what sets the library apart: a headline table from the 30-question benchmark with a likely range for every score and a verdict against the best setup, a "What it does" section covering margins of error, the answer log, the decision record, `verify` and named failures, two commands that run without an API key, and a snippet that shows the paired verdict and saving a decision
 
 ## [0.13.0] - 2026-11-21

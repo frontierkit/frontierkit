@@ -7,7 +7,7 @@ from frontierkit.registry.metadata import ComponentMetadata
 
 class AgentGraph:
     """
-    Directed Acyclic Graph (DAG) representing an agent architecture
+    A pipeline as a directed acyclic graph of components
 
     Nodes:
         ComponentMetadata instances

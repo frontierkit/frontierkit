@@ -6,8 +6,8 @@ from frontierkit.graph.agent_graph import AgentGraph
 @dataclass(frozen=True)
 class ArchitectureCandidate:
     """
-    Represents a fully constructed agent architecture
-    with cached deterministic metrics for optimization
+    One complete pipeline, with its declared cost, latency,
+    reliability and quality cached for comparison
     """
 
     graph: AgentGraph

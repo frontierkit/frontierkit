@@ -1,15 +1,15 @@
 """
 FrontierKit
 
-Framework for automated synthesis and optimization of AI agent
-architectures under multi-objective constraints.
+Find out which model, prompt and pipeline answer your own questions
+best, and how sure you can be.
 
-Core capabilities include:
-
-- Task specification
-- Agent architecture synthesis
-- Multi-objective optimization
-- Pareto frontier analysis
+- Describe your options as components and the steps a pipeline needs.
+- Run every pipeline on your examples and score the answers.
+- Get a range for every score, and a verdict on whether two pipelines
+  can be told apart.
+- Keep the pipelines nothing beats on quality, speed and cost.
+- Record the choice, and check later that it still holds.
 """
 
 from .decision import Decision, load_decision, record_decision

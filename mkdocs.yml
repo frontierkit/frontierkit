@@ -1,9 +1,15 @@
 site_name: FrontierKit
-site_description: Find out which model and prompt answer your questions best, measured on free endpoints.
+site_description: Find out which model, prompt and pipeline answer your own questions best, with honest margins of error.
 site_url: https://frontierkit.github.io/frontierkit/
 repo_url: https://github.com/frontierkit/frontierkit
 repo_name: frontierkit/frontierkit
 edit_uri: edit/main/docs/
+copyright: FrontierKit, MIT licence. Developed by Siddharth Saraswat.
+
+# Rebuild the local preview when these change too.
+watch:
+  - CHANGELOG.md
+  - overrides
 
 nav:
   - Home: index.md
@@ -11,12 +17,13 @@ nav:
   - Use it from Python: USAGE.md
   - How it works: ARCHITECTURE.md
   - Benchmarks: BENCHMARKS.md
-  - Changelog: https://github.com/frontierkit/frontierkit/blob/main/CHANGELOG.md
+  - Changelog: CHANGELOG.md
 
 theme:
   name: material
   custom_dir: overrides
   favicon: assets/favicon.svg
+  logo: assets/favicon.svg
   font:
     text: Inter
     code: JetBrains Mono
@@ -26,9 +33,22 @@ theme:
     - content.code.copy
     - toc.follow
   palette:
-    scheme: slate
-    primary: custom
-    accent: custom
+    - scheme: slate
+      primary: custom
+      accent: custom
+      toggle:
+        icon: material/weather-sunny
+        name: Switch to light theme
+    - scheme: default
+      primary: custom
+      accent: custom
+      toggle:
+        icon: material/weather-night
+        name: Switch to dark theme
+
+# No "Made with Material for MkDocs" line in the footer.
+extra:
+  generator: false
 
 extra_css:
   - stylesheets/site.css
@@ -41,7 +61,14 @@ markdown_extensions:
   - toc:
       permalink: true
   - pymdownx.highlight
-  - pymdownx.superfences
+  - pymdownx.snippets:
+      base_path: ["."]
+      check_paths: true
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
 
 exclude_docs: |
   benchmark_results.json
