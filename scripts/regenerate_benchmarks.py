@@ -28,24 +28,24 @@ import statistics
 import time
 from pathlib import Path
 
-import chatcortex
-from chatcortex import TaskSpecification, build_demo_registry
-from chatcortex.evaluation.approximation_metrics import (
+import frontierkit
+from frontierkit import TaskSpecification, build_demo_registry
+from frontierkit.evaluation.approximation_metrics import (
     average_regret,
     compute_coverage,
 )
-from chatcortex.optimization.pareto import hypervolume_monte_carlo
-from chatcortex.synthesis.beam_synthesizer import BeamSynthesizer
-from chatcortex.synthesis.budget import SynthesisBudget
-from chatcortex.synthesis.exhaustive_synthesizer import ExhaustiveSynthesizer
-from chatcortex.synthesis.heuristic_synthesizer import HeuristicSynthesizer
-from chatcortex.synthesis.pareto_partial_beam_synthesizer import (
+from frontierkit.optimization.pareto import hypervolume_monte_carlo
+from frontierkit.synthesis.beam_synthesizer import BeamSynthesizer
+from frontierkit.synthesis.budget import SynthesisBudget
+from frontierkit.synthesis.exhaustive_synthesizer import ExhaustiveSynthesizer
+from frontierkit.synthesis.heuristic_synthesizer import HeuristicSynthesizer
+from frontierkit.synthesis.pareto_partial_beam_synthesizer import (
     ParetoPartialBeamSynthesizer,
 )
-from chatcortex.synthesis.progressive_pareto_beam_synthesizer import (
+from frontierkit.synthesis.progressive_pareto_beam_synthesizer import (
     ProgressiveParetoBeamSynthesizer,
 )
-from chatcortex.synthesis.random_synthesizer import RandomSynthesizer
+from frontierkit.synthesis.random_synthesizer import RandomSynthesizer
 
 
 def make_report(approx_frontier, true_frontier, reference_point, samples, hv_true):
@@ -235,7 +235,7 @@ def main():
 
     payload = {
         "meta": {
-            "chatcortex_version": chatcortex.__version__,
+            "frontierkit_version": frontierkit.__version__,
             "python": platform.python_version(),
             "stage_setup": "5-stage demo registry, 4 variants per capability "
                            "(4**5 = 1024 candidate chains)",

@@ -4,7 +4,7 @@ import json
 
 import pytest
 
-from chatcortex import (
+from frontierkit import (
     AgentExecutor,
     CallableBackend,
     CapabilityRegistry,

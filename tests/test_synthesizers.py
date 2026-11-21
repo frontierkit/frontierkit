@@ -10,7 +10,7 @@ returned candidate, and no returned set contains a dominated member.
 
 import pytest
 
-from chatcortex import (
+from frontierkit import (
     BeamSynthesizer,
     ExhaustiveSynthesizer,
     HeuristicSynthesizer,
@@ -18,7 +18,7 @@ from chatcortex import (
     ProgressiveParetoBeamSynthesizer,
     RandomSynthesizer,
 )
-from chatcortex.optimization.pareto import dominates
+from frontierkit.optimization.pareto import dominates
 
 ALL_SYNTHESIZERS = [
     lambda reg: HeuristicSynthesizer(reg),

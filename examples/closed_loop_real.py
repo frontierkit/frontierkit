@@ -1,4 +1,4 @@
-"""The closed loop with REAL executions via the ``chatcortex[real]`` extra.
+"""The closed loop with REAL executions via the ``frontierkit[real]`` extra.
 
 Same loop as ``closed_loop.py``, but every probe is an actual OpenAI
 chat-completions call through the ``OpenAIBackend`` adapter, so latency
@@ -8,7 +8,7 @@ two rounds with two candidates each.
 
 Run from the repo root:
 
-    pip install "chatcortex[real]"
+    pip install "frontierkit[real]"
     export OPENAI_API_KEY=sk-...
     python examples/closed_loop_real.py
 
@@ -19,12 +19,12 @@ cleanly, so CI with no secrets stays green.
 import os
 import sys
 
-from chatcortex.execution.executor import AgentExecutor
-from chatcortex.loop import run_closed_loop
-from chatcortex.synthesis.progressive_pareto_beam_synthesizer import (
+from frontierkit.execution.executor import AgentExecutor
+from frontierkit.loop import run_closed_loop
+from frontierkit.synthesis.progressive_pareto_beam_synthesizer import (
     ProgressiveParetoBeamSynthesizer,
 )
-from chatcortex.synthesis.task_specification import TaskSpecification
+from frontierkit.synthesis.task_specification import TaskSpecification
 
 ITERATIONS = 2
 CANDIDATES_PER_ITERATION = 2
@@ -33,7 +33,7 @@ ALPHA = 0.5
 SETUP_CARD = """
 OpenAIBackend needs one thing this environment does not have yet:
 
-  1. pip install "chatcortex[real]"     # the openai SDK is optional
+  1. pip install "frontierkit[real]"     # the openai SDK is optional
   2. export OPENAI_API_KEY=sk-...       # https://platform.openai.com/api-keys
   3. python examples/closed_loop_real.py
 
@@ -48,7 +48,7 @@ def _backend_or_none():
     if not os.environ.get("OPENAI_API_KEY"):
         return None
     try:
-        from chatcortex.adapters.openai_backend import OpenAIBackend
+        from frontierkit.adapters.openai_backend import OpenAIBackend
 
         return OpenAIBackend()  # __init__ lazy-imports `openai` (the extra)
     except ImportError:
@@ -117,6 +117,6 @@ def main():
 
 
 if __name__ == "__main__":
-    from chatcortex.registry.demo_components import build_demo_registry
+    from frontierkit.registry.demo_components import build_demo_registry
 
     sys.exit(main())

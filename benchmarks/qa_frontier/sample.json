@@ -1,6 +1,6 @@
 {
-  "version": "chatcortex-sample",
-  "note": "Six questions written for ChatCortex in the SQuAD v1.1 format, so the benchmark runs without downloading anything.",
+  "version": "frontierkit-sample",
+  "note": "Six questions written for FrontierKit in the SQuAD v1.1 format, so the benchmark runs without downloading anything.",
   "data": [
     {
       "title": "Lighthouses",

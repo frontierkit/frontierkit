@@ -1,5 +1,5 @@
 """
-ChatCortex quickstart.
+FrontierKit quickstart.
 
 Synthesizes Pareto-optimal agent architectures for a 3-stage task
 using the prebuilt demo registry. Runs in under a second:
@@ -7,7 +7,7 @@ using the prebuilt demo registry. Runs in under a second:
     python examples/quickstart.py
 """
 
-from chatcortex import (
+from frontierkit import (
     BeamSynthesizer,
     ExhaustiveSynthesizer,
     ProgressiveParetoBeamSynthesizer,

@@ -1,15 +1,15 @@
 from statistics import mean, stdev
 
-from chatcortex.evaluation.approximation_metrics import evaluate_approximation
-from chatcortex.synthesis.beam_synthesizer import BeamSynthesizer
-from chatcortex.synthesis.budget import SynthesisBudget
-from chatcortex.synthesis.exhaustive_synthesizer import ExhaustiveSynthesizer
-from chatcortex.synthesis.heuristic_synthesizer import HeuristicSynthesizer
-from chatcortex.synthesis.pareto_partial_beam_synthesizer import ParetoPartialBeamSynthesizer
-from chatcortex.synthesis.progressive_pareto_beam_synthesizer import (
+from frontierkit.evaluation.approximation_metrics import evaluate_approximation
+from frontierkit.synthesis.beam_synthesizer import BeamSynthesizer
+from frontierkit.synthesis.budget import SynthesisBudget
+from frontierkit.synthesis.exhaustive_synthesizer import ExhaustiveSynthesizer
+from frontierkit.synthesis.heuristic_synthesizer import HeuristicSynthesizer
+from frontierkit.synthesis.pareto_partial_beam_synthesizer import ParetoPartialBeamSynthesizer
+from frontierkit.synthesis.progressive_pareto_beam_synthesizer import (
     ProgressiveParetoBeamSynthesizer,
 )
-from chatcortex.synthesis.random_synthesizer import RandomSynthesizer
+from frontierkit.synthesis.random_synthesizer import RandomSynthesizer
 
 
 def run_budget_sweep(registry, task):
@@ -212,7 +212,7 @@ def run_budget_sweep(registry, task):
 
 
 if __name__ == "__main__":
-    from chatcortex import TaskSpecification, build_demo_registry
+    from frontierkit import TaskSpecification, build_demo_registry
 
     capabilities = (
         "retrieval",

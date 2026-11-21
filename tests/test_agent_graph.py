@@ -1,6 +1,6 @@
 import pytest
 
-from chatcortex import AgentGraph, ComponentMetadata
+from frontierkit import AgentGraph, ComponentMetadata
 
 
 def make_component(name, cost=0.001, latency=100, reliability=0.9):

@@ -10,7 +10,7 @@ Run from the repo root:
     python examples/callable_pipeline.py
 """
 
-from chatcortex import (
+from frontierkit import (
     AgentExecutor,
     CallableBackend,
     CapabilityRegistry,

@@ -1,9 +1,9 @@
 ---
-title: ChatCortex
+title: FrontierKit
 template: home.html
 ---
 
-# ChatCortex
+# FrontierKit
 
 Find out which model and prompt answer your questions best.
 

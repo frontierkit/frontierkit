@@ -5,11 +5,11 @@ byte here; the synthesis link test guards calibration against silently
 drifting away from the scheme the synthesizers emit.
 """
 
-from chatcortex.graph.node_ids import (
+from frontierkit.graph.node_ids import (
     component_name_from_node_id,
     node_id_for,
 )
-from chatcortex.telemetry.calibration import calibrate
+from frontierkit.telemetry.calibration import calibrate
 
 
 def test_encode_format_is_pinned():
@@ -33,7 +33,7 @@ def test_registry_names_with_digit_suffix_never_confuse_decode():
 def test_synthesized_node_ids_decode_to_registered_components(registry, task):
     """The visible link: every node id a synthesizer emits decodes, via
     the shared helper, back to a component the registry knows."""
-    from chatcortex import ProgressiveParetoBeamSynthesizer
+    from frontierkit import ProgressiveParetoBeamSynthesizer
 
     synthesizer = ProgressiveParetoBeamSynthesizer(registry)
     frontier = synthesizer.synthesize(task)
@@ -50,8 +50,8 @@ def test_calibration_consumes_synthesized_node_ids(registry, task):
     """A record traced under a synthesized node id must reach its
     component through the shared decode, keeping priors untouched for
     components without traces."""
-    from chatcortex import ProgressiveParetoBeamSynthesizer
-    from chatcortex.graph.node_ids import node_id_for as nid
+    from frontierkit import ProgressiveParetoBeamSynthesizer
+    from frontierkit.graph.node_ids import node_id_for as nid
 
     synthesizer = ProgressiveParetoBeamSynthesizer(registry)
     frontier = synthesizer.synthesize(task)

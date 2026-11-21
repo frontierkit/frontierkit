@@ -9,9 +9,9 @@ It uses only free model endpoints, so it costs nothing but time.
 ## 1. Install
 
 ```bash
-pip install "chatcortex[real]"
-git clone https://github.com/siddharth1012/chatCortex
-cd chatCortex
+pip install "frontierkit[real]"
+git clone https://github.com/frontierkit/frontierkit
+cd frontierkit
 ```
 
 The `real` extra adds the OpenAI SDK, which is used to talk to every vendor
@@ -130,12 +130,12 @@ re-ranker, a check on the answer. See "Run your own functions" in the README.
 ## 7. When there are too many combinations
 
 Trying everything is the right choice while it stays affordable. When it
-doesn't, let ChatCortex choose what to try. `run_closed_loop` with an eval set
+doesn't, let FrontierKit choose what to try. `run_closed_loop` with an eval set
 scores a few setups per round, estimates how good each component is from the
 scores, and proposes the next setups from those estimates; `explore=N` makes it
 also try untried setups each round.
 
-On ChatCortex's own question-answering benchmark this finds the best setup in
+On FrontierKit's own question-answering benchmark this finds the best setup in
 about the same number of calls as picking setups at random, so it is not yet a
 reason on its own to prefer the loop over trying everything; see
 `benchmarks/qa_frontier/`.

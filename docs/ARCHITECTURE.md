@@ -1,6 +1,6 @@
-# ChatCortex Architecture
+# FrontierKit Architecture
 
-ChatCortex is a research framework for **automated synthesis and evaluation of AI agent architectures** under multi-objective constraints.
+FrontierKit is a research framework for **automated synthesis and evaluation of AI agent architectures** under multi-objective constraints.
 
 The system treats agent design as an **architecture search problem**, where candidate pipelines are generated, evaluated, and compared across multiple objectives.
 
@@ -77,17 +77,17 @@ The registry supports:
 * component discovery
 
 Registries can also be materialized from a JSON document with
-**`load_registry(path)`** (`chatcortex.registry.loader`). Every row is
+**`load_registry(path)`** (`frontierkit.registry.loader`). Every row is
 validated — costs, latency, and the reliability range; component type,
 privacy, and capability vocabulary — and validation failures name the
 row and field (e.g. `components[2].reliability_score out of range`).
 `CapabilityRegistry.to_dict()` emits the same document shape, so
 registries round-trip through JSON. They also ship as packs:
-`save_registry(registry, path)` (`chatcortex.registry.package`) writes
+`save_registry(registry, path)` (`frontierkit.registry.package`) writes
 that same shape and proves the round-trip by reloading the file, and
 `validate_registry_file(path)` returns a structured report — component
 count, per-row field issues, duplicate names — without raising. The
-`chatcortex-registry validate <file>` console command wraps the report,
+`frontierkit-registry validate <file>` console command wraps the report,
 exiting 0 only for a fully valid pack.
 
 Importantly, the registry **does not perform optimization**. It simply exposes valid components to the synthesis engine.
@@ -157,7 +157,7 @@ This allows empirical evaluation of system robustness.
 
 Optionally, `AgentExecutor(..., backend=...)` delegates each component
 call to a real execution backend — an `openai`-SDK chat-completions
-adapter ships behind the `chatcortex[real]` extra (see
+adapter ships behind the `frontierkit[real]` extra (see
 `ExecutionProtocol`). With a backend set, telemetry records the
 backend's *measured* latency, cost, and success instead of simulated
 values, and the chain still stops on the first failing component.
@@ -176,7 +176,7 @@ Execution traces capture:
 These logs support detailed experimental analysis.
 
 **Trace calibration** closes the loop:
-`chatcortex.telemetry.calibration.calibrate(registry, records, alpha)`
+`frontierkit.telemetry.calibration.calibrate(registry, records, alpha)`
 blends empirical success/latency/cost from recorded traces back into a
 *new* immutable registry via `CapabilityRegistry.update()`:
 
@@ -206,7 +206,7 @@ Metrics are aggregated across runs to estimate system performance.
 
 # Pareto Optimization
 
-ChatCortex computes **Pareto-optimal architectures** across:
+FrontierKit computes **Pareto-optimal architectures** across:
 
 * cost
 * latency

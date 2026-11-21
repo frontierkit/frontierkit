@@ -4,7 +4,7 @@ import random
 import sys
 from pathlib import Path
 
-from chatcortex import PipelineEvaluation
+from frontierkit import PipelineEvaluation
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "examples"))
 import pick_models  # noqa: E402

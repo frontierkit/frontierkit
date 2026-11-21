@@ -1,4 +1,4 @@
-"""Behavioral tests for chatcortex.loop.run_closed_loop.
+"""Behavioral tests for frontierkit.loop.run_closed_loop.
 
 The loop is only as trustworthy as its glue: these tests recompute the
 expected calibration arithmetic independently of the loop and assert the
@@ -11,12 +11,12 @@ import json
 
 import pytest
 
-from chatcortex.execution.executor import AgentExecutor
-from chatcortex.graph.node_ids import component_name_from_node_id
-from chatcortex.loop import LoopIteration, run_closed_loop
-from chatcortex.registry.demo_components import build_demo_registry
-from chatcortex.synthesis.beam_synthesizer import BeamSynthesizer
-from chatcortex.synthesis.task_specification import TaskSpecification
+from frontierkit.execution.executor import AgentExecutor
+from frontierkit.graph.node_ids import component_name_from_node_id
+from frontierkit.loop import LoopIteration, run_closed_loop
+from frontierkit.registry.demo_components import build_demo_registry
+from frontierkit.synthesis.beam_synthesizer import BeamSynthesizer
+from frontierkit.synthesis.task_specification import TaskSpecification
 
 ALPHA = 0.3
 
@@ -201,7 +201,7 @@ def test_loop_composes_with_execution_backend():
     """Executor + ExecutionProtocol inside the loop: *measured* latency
     and cost (not the declared values) drive calibration, so both
     actually move — which the pure simulator cannot show."""
-    from chatcortex.execution.executor import ProbeResult
+    from frontierkit.execution.executor import ProbeResult
 
     class StubBackend:
         """Half the declared latency, double the declared cost."""
@@ -249,7 +249,7 @@ def test_loop_rejects_bad_inputs_before_any_execution():
     """candidates_per_iteration and alpha are validated up front: no round
     synthesizes, and in particular nothing ever executes against a real
     backend under settings that would stall or mis-calibrate."""
-    from chatcortex.execution.executor import ProbeResult
+    from frontierkit.execution.executor import ProbeResult
 
     class CountingBackend:
         def __init__(self):
@@ -287,7 +287,7 @@ def test_loop_rejects_bad_inputs_before_any_execution():
 
 
 def test_prior_strength_loop_calibrates_declared_registry_from_all_traces():
-    from chatcortex.telemetry.calibration import calibrate
+    from frontierkit.telemetry.calibration import calibrate
 
     registry, task = _demo_setup()
     records = run_closed_loop(

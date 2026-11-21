@@ -1,8 +1,8 @@
 import pytest
 
-from chatcortex import AgentGraph, ComponentMetadata
-from chatcortex.adapters.openai_backend import OpenAIBackend
-from chatcortex.execution.executor import (
+from frontierkit import AgentGraph, ComponentMetadata
+from frontierkit.adapters.openai_backend import OpenAIBackend
+from frontierkit.execution.executor import (
     AgentExecutor,
     ExecutionProtocol,
     ProbeResult,

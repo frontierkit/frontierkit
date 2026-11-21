@@ -10,7 +10,7 @@ Set the keys you have (each one is optional), then run from the repo root:
     export NVIDIA_API_KEY=...      # NVIDIA API catalog
     export GROQ_API_KEY=...        # Groq
     export OPENROUTER_API_KEY=...  # OpenRouter, free models only
-    pip install "chatcortex[real]"
+    pip install "frontierkit[real]"
     python examples/pick_models.py
 
 Your questions go in a CSV file with the columns question, answer and,
@@ -31,7 +31,7 @@ import sys
 import time
 from pathlib import Path
 
-from chatcortex import (
+from frontierkit import (
     AgentExecutor,
     CallableBackend,
     CapabilityRegistry,
@@ -170,7 +170,7 @@ def available_models(base_url, api_key):
 
 def model_backends(questions):
     """Backends for the models whose keys are set and that answer a test call."""
-    from chatcortex.adapters.openai_backend import OpenAIBackend
+    from frontierkit.adapters.openai_backend import OpenAIBackend
 
     backends = {}
     print("Checking models")
@@ -285,7 +285,7 @@ def main(argv=None):
     try:
         import openai  # noqa: F401
     except ImportError:
-        print('Install the real-backend extra first: pip install "chatcortex[real]"')
+        print('Install the real-backend extra first: pip install "frontierkit[real]"')
         return 1
 
     questions = load_questions(args.questions, args.max_questions)

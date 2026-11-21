@@ -3,11 +3,16 @@
 All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
-## [Unreleased]
+## [0.13.0] - 2026-11-21
+
+### Changed
+- **The library is now called FrontierKit.** Install it with `pip install frontierkit` and import `frontierkit` where you imported `chatcortex`; nothing else about the API changed. The commands are now `frontierkit` and `frontierkit-registry`. The repository is at https://github.com/frontierkit/frontierkit and the website at https://frontierkit.github.io/frontierkit/. Releases up to 0.12.0 were published as `chatcortex`, and the entries below keep that name
+- `chatcortex` 0.13.0 on PyPI is a thin package that installs `frontierkit`, keeps `import chatcortex` and both old commands working, and warns that the name has changed. It will get no further releases
+- A decision record stores the library version under `frontierkit`; records written by 0.12.0 still load
 
 ### Added
 - **Check that a choice still holds.** `verify_decision(decision, pipelines, executor, eval_set)` runs the chosen pipeline again on the same examples and compares the fresh run with the record. It answers `valid`, `quality_dropped`, `slower`, `unavailable` (the service refused, timed out or lost the model) or `not_comparable` (other examples, or a step that now runs on something else). Examples are asked one at a time and the check stops early once the matter is settled; a `valid` result says whether the change was shown to be within the tolerance or merely not disproved, and how big a drop could have gone unnoticed
-- **`chatcortex verify decision.json --setup compare.py`** does the same from the command line, with a different exit code for each answer, and appends every check to `decision.history.jsonl`. Made for a scheduled job
+- **`frontierkit verify decision.json --setup compare.py`** does the same from the command line, with a different exit code for each answer, and appends every check to `decision.history.jsonl`. Made for a scheduled job
 - `PipelineEvaluation.latencies` holds the recorded time of each example, and a decision record now keeps the chosen pipeline's score and time on every example
 - `examples/verify_decision.py` records a choice and checks it three times, offline
 

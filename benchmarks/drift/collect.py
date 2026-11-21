@@ -38,8 +38,8 @@ from benchmarks.qa_frontier.qa import (
     context_step,
     load_questions,
 )
-from chatcortex.registry.metadata import ComponentMetadata
-from chatcortex.store import AnswerLog, LoggedBackend, fingerprint
+from frontierkit.registry.metadata import ComponentMetadata
+from frontierkit.store import AnswerLog, LoggedBackend, fingerprint
 
 HERE = Path(__file__).parent
 DEFAULT_LOG = HERE / "answers.jsonl"
@@ -68,7 +68,7 @@ def model_metadata(spec: ModelSpec) -> ComponentMetadata:
 
 
 def openai_backend(spec: ModelSpec, api_key: str) -> Backend:
-    from chatcortex.adapters.openai_backend import OpenAIBackend
+    from frontierkit.adapters.openai_backend import OpenAIBackend
 
     return OpenAIBackend(
         model=spec.model,

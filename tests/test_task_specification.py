@@ -1,6 +1,6 @@
 import pytest
 
-from chatcortex import TaskSpecification
+from frontierkit import TaskSpecification
 
 
 def test_valid_task_passes():

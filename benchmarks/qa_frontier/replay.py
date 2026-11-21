@@ -10,11 +10,11 @@ Strategies:
 
 - grid: try every pipeline, in a fixed order.
 - random: try pipelines in random order (averaged over 20 seeds).
-- chatcortex: ChatCortex's closed loop with an eval set. Each round it
+- frontierkit: FrontierKit's closed loop with an eval set. Each round it
   synthesizes a frontier from the registry, with measured quality as an
   objective, scores the pipelines it has not scored yet, and calibrates
   the registry from what it measured. Look-alike pipelines are all kept.
-- chatcortex, explore N: the same loop also scoring the N untried
+- frontierkit, explore N: the same loop also scoring the N untried
   pipelines with the highest predicted quality each round, so it keeps
   looking after its frontier is fully scored. --explore sets the values
   shown (default 1, 2 and 4).
@@ -35,7 +35,7 @@ import sys
 from dataclasses import dataclass
 from typing import Callable, Dict, List, Sequence, Tuple
 
-from chatcortex import (
+from frontierkit import (
     AgentExecutor,
     CapabilityRegistry,
     ExhaustiveSynthesizer,
@@ -144,14 +144,14 @@ def random_strategy(replay: Replay, seed: int) -> List[Point]:
     return sequential(replay, order)
 
 
-def chatcortex_strategy(
+def frontierkit_strategy(
     replay: Replay,
     iterations: int = 8,
     prior_strength: float = 20.0,
     keep_ties: bool = True,
     explore: int = 0,
 ) -> List[Point]:
-    """ChatCortex's closed loop with an eval set; a point per round."""
+    """FrontierKit's closed loop with an eval set; a point per round."""
     contexts, answers, posts, functions = build_components(replay.questions, replay.models)
     registry = CapabilityRegistry()
     for metadata in (*contexts, *answers, *posts):
@@ -197,9 +197,9 @@ def compare(
     """Strategy name -> f(budget) giving (coverage, best quality found)."""
     grid = grid_strategy(replay)
     randoms = [random_strategy(replay, seed) for seed in RANDOM_SEEDS]
-    loop = chatcortex_strategy(replay, iterations=iterations)
+    loop = frontierkit_strategy(replay, iterations=iterations)
     exploring = {
-        n: chatcortex_strategy(replay, iterations=iterations, explore=n)
+        n: frontierkit_strategy(replay, iterations=iterations, explore=n)
         for n in explore_values
         if n > 0
     }
@@ -221,10 +221,10 @@ def compare(
     strategies = {
         "grid": single(grid),
         "random (mean of 20)": averaged,
-        "chatcortex": single(loop),
+        "frontierkit": single(loop),
     }
     for n, points in exploring.items():
-        strategies[f"chatcortex, explore {n}"] = single(points)
+        strategies[f"frontierkit, explore {n}"] = single(points)
     return strategies, loop
 
 
@@ -236,7 +236,7 @@ def main(argv=None) -> int:
     parser.add_argument("--cache", default=str(DEFAULT_CACHE))
     parser.add_argument(
         "--explore", default="1,2,4",
-        help="comma-separated explore values for extra ChatCortex rows",
+        help="comma-separated explore values for extra FrontierKit rows",
     )
     args = parser.parse_args(argv)
     explore_values = [int(v) for v in args.explore.split(",") if v.strip()]
@@ -277,7 +277,7 @@ def main(argv=None) -> int:
     print()
     final = loop[-1]
     print(
-        f"Without exploration, ChatCortex's loop stopped after {final.calls} calls "
+        f"Without exploration, FrontierKit's loop stopped after {final.calls} calls "
         f"({final.calls / total:.0%} of the grid) with coverage {final.coverage:.2f} "
         f"and best quality {final.best_quality:.3f}."
     )

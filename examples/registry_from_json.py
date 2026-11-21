@@ -1,4 +1,4 @@
-"""The full ChatCortex loop with zero API keys.
+"""The full FrontierKit loop with zero API keys.
 
 Writes a small JSON registry, loads it with ``load_registry``, synthesizes
 a Pareto frontier, executes one architecture with the built-in simulator,
@@ -12,14 +12,14 @@ import json
 import tempfile
 from pathlib import Path
 
-from chatcortex import (
+from frontierkit import (
     ProgressiveParetoBeamSynthesizer,
     SynthesisBudget,
     TaskSpecification,
     load_registry,
 )
-from chatcortex.execution.executor import AgentExecutor
-from chatcortex.telemetry.calibration import calibrate
+from frontierkit.execution.executor import AgentExecutor
+from frontierkit.telemetry.calibration import calibrate
 
 REGISTRY_JSON = {
     "components": [

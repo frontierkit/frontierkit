@@ -1,7 +1,7 @@
 import pytest
 
-from chatcortex import AgentGraph, CapabilityRegistry, ComponentMetadata
-from chatcortex.execution.executor import AgentExecutor
+from frontierkit import AgentGraph, CapabilityRegistry, ComponentMetadata
+from frontierkit.execution.executor import AgentExecutor
 
 
 def build_graph():

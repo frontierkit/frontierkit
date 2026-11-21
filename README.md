@@ -1,18 +1,22 @@
-# ChatCortex
+# FrontierKit
 
-[![CI](https://github.com/siddharth1012/chatCortex/actions/workflows/ci.yml/badge.svg)](https://github.com/siddharth1012/chatCortex/actions/workflows/ci.yml)
-[![PyPI version](https://img.shields.io/pypi/v/chatcortex)](https://pypi.org/project/chatcortex/)
+[![CI](https://github.com/frontierkit/frontierkit/actions/workflows/ci.yml/badge.svg)](https://github.com/frontierkit/frontierkit/actions/workflows/ci.yml)
+[![PyPI version](https://img.shields.io/pypi/v/frontierkit)](https://pypi.org/project/frontierkit/)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue)](https://www.python.org/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://github.com/siddharth1012/chatCortex/blob/main/LICENSE)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://github.com/frontierkit/frontierkit/blob/main/LICENSE)
 
 **Find out which model and prompt answer your questions best.**
 
-ChatCortex runs your questions through every combination of model, prompt and
+FrontierKit runs your questions through every combination of model, prompt and
 pipeline step you want to compare, scores the answers against your references,
 and tells you which setup to use. It works with free model endpoints, so trying
 it costs nothing.
 
-**Website and guide: [siddharth1012.github.io/chatCortex](https://siddharth1012.github.io/chatCortex/)**
+**Website and guide: [frontierkit.github.io/frontierkit](https://frontierkit.github.io/frontierkit/)**
+
+FrontierKit was called ChatCortex up to version 0.12. `pip install chatcortex`
+still works: it installs FrontierKit and keeps `import chatcortex` running, with
+a reminder to switch.
 
 ## What you get
 
@@ -31,9 +35,9 @@ to 0.92. Quality is word overlap with the reference answers, from 0 to 1.
 ## Try it in five minutes
 
 ```bash
-pip install "chatcortex[real]"
-git clone https://github.com/siddharth1012/chatCortex
-cd chatCortex
+pip install "frontierkit[real]"
+git clone https://github.com/frontierkit/frontierkit
+cd frontierkit
 ```
 
 Set a free API key from any of SAIA, NVIDIA, Groq or OpenRouter, for example:
@@ -50,7 +54,7 @@ python examples/pick_models.py --max-questions 4
 python examples/pick_models.py --questions my_questions.csv
 ```
 
-The [get-started guide](https://siddharth1012.github.io/chatCortex/GUIDE/) walks through each step: getting keys,
+The [get-started guide](https://frontierkit.github.io/frontierkit/GUIDE/) walks through each step: getting keys,
 writing questions, reading the results, and changing what is compared.
 
 ## What you can compare
@@ -67,7 +71,7 @@ writing questions, reading the results, and changing what is compared.
 ## Use it from Python
 
 ```python
-from chatcortex import (
+from frontierkit import (
     EvalSet, Example, enumerate_pipelines, evaluate_pipelines,
     quality_frontier, token_f1,
 )
@@ -87,7 +91,7 @@ best = quality_frontier(evaluations)[0]                    # highest quality fir
 print(best.components, best.quality, best.latency_ms)
 ```
 
-[Using ChatCortex from Python](https://siddharth1012.github.io/chatCortex/USAGE/) covers the rest: describing
+[Using FrontierKit from Python](https://frontierkit.github.io/frontierkit/USAGE/) covers the rest: describing
 components and tasks, running your own functions, calling models from several
 vendors, measuring cost from token usage, and letting the library choose what
 to try when there are too many combinations.
@@ -99,11 +103,11 @@ scored 0.95 on two vendors, but answered in 230 ms on one and 14,516 ms on the
 other. Without reading material it scored 0.10. A smaller model was no faster
 and scored 0.33. None of that is visible from a model card. The benchmark that
 produced these numbers runs on free models and is in
-[benchmarks/qa_frontier/](https://github.com/siddharth1012/chatCortex/tree/main/benchmarks/qa_frontier).
+[benchmarks/qa_frontier/](https://github.com/frontierkit/frontierkit/tree/main/benchmarks/qa_frontier).
 
 ## Where it stands
 
-ChatCortex is an alpha-stage research library; its API may change between
+FrontierKit is an alpha-stage research library; its API may change between
 minor versions.
 
 - Trying every combination is complete and dependable.
@@ -115,19 +119,19 @@ minor versions.
 
 ## Documentation
 
-- [Website](https://siddharth1012.github.io/chatCortex/)
-- [Get started](https://siddharth1012.github.io/chatCortex/GUIDE/): compare free models and prompts on your own questions
-- [Using ChatCortex from Python](https://siddharth1012.github.io/chatCortex/USAGE/)
-- [How it works](https://siddharth1012.github.io/chatCortex/ARCHITECTURE/)
-- [Benchmarks](https://siddharth1012.github.io/chatCortex/BENCHMARKS/)
-- [Examples](https://github.com/siddharth1012/chatCortex/tree/main/examples)
-- [Contributing](https://github.com/siddharth1012/chatCortex/blob/main/CONTRIBUTING.md) and [Changelog](https://github.com/siddharth1012/chatCortex/blob/main/CHANGELOG.md)
+- [Website](https://frontierkit.github.io/frontierkit/)
+- [Get started](https://frontierkit.github.io/frontierkit/GUIDE/): compare free models and prompts on your own questions
+- [Using FrontierKit from Python](https://frontierkit.github.io/frontierkit/USAGE/)
+- [How it works](https://frontierkit.github.io/frontierkit/ARCHITECTURE/)
+- [Benchmarks](https://frontierkit.github.io/frontierkit/BENCHMARKS/)
+- [Examples](https://github.com/frontierkit/frontierkit/tree/main/examples)
+- [Contributing](https://github.com/frontierkit/frontierkit/blob/main/CONTRIBUTING.md) and [Changelog](https://github.com/frontierkit/frontierkit/blob/main/CHANGELOG.md)
 
 ## Citing
 
-If you use ChatCortex in your research, please cite it; see
-[CITATION.cff](https://github.com/siddharth1012/chatCortex/blob/main/CITATION.cff).
+If you use FrontierKit in your research, please cite it; see
+[CITATION.cff](https://github.com/frontierkit/frontierkit/blob/main/CITATION.cff).
 
 ## License
 
-[MIT](https://github.com/siddharth1012/chatCortex/blob/main/LICENSE). Developed by Siddharth Saraswat.
+[MIT](https://github.com/frontierkit/frontierkit/blob/main/LICENSE). Developed by Siddharth Saraswat.

@@ -1,6 +1,6 @@
 import pytest
 
-from chatcortex import TaskSpecification, build_demo_registry
+from frontierkit import TaskSpecification, build_demo_registry
 
 
 @pytest.fixture

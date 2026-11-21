@@ -23,7 +23,7 @@ import sys
 import time
 from typing import Callable, Dict, Mapping, Optional, Sequence, Tuple
 
-from chatcortex import ComponentMetadata
+from frontierkit import ComponentMetadata
 
 from .qa import (
     DEFAULT_CACHE,
@@ -44,8 +44,8 @@ Caller = Callable[[str], Reply]
 
 
 def openai_caller(spec: ModelSpec, api_key: str) -> Caller:
-    """A caller backed by ChatCortex's OpenAI-compatible backend."""
-    from chatcortex.adapters.openai_backend import OpenAIBackend
+    """A caller backed by FrontierKit's OpenAI-compatible backend."""
+    from frontierkit.adapters.openai_backend import OpenAIBackend
 
     backend = OpenAIBackend(
         model=spec.model,

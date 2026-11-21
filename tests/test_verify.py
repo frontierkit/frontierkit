@@ -1,11 +1,11 @@
-"""verify_decision and the chatcortex verify command."""
+"""verify_decision and the frontierkit verify command."""
 
 import json
 from datetime import datetime, timezone
 
 import pytest
 
-from chatcortex import (
+from frontierkit import (
     AgentExecutor,
     AnswerLog,
     CapabilityRegistry,
@@ -21,8 +21,8 @@ from chatcortex import (
     record_decision,
     verify_decision,
 )
-from chatcortex.cli import history_path, load_setup, main
-from chatcortex.execution.executor import ProbeResult
+from frontierkit.cli import history_path, load_setup, main
+from frontierkit.execution.executor import ProbeResult
 
 FIXED = datetime(2026, 11, 21, 8, 0, tzinfo=timezone.utc)
 
@@ -266,7 +266,7 @@ SETUP = '''
 import json
 from pathlib import Path
 
-from chatcortex import (
+from frontierkit import (
     AgentExecutor, CallableBackend, CapabilityRegistry, ComponentMetadata, EvalSet, Example,
     TaskSpecification, enumerate_pipelines,
 )
