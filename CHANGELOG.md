@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased]
+
+### Added
+- `PipelineEvaluation.scores` and `PipelineEvaluation.outputs` keep the score and the returned output of every example, in eval-set order (0 and `None` for a failed run), so a run can be inspected example by example or graded again with another scorer without new calls. `to_dict()` is unchanged
+- Scorers for pipelines that extract triples: `triple_precision`, `triple_recall` and `triple_f1` compare a collection of extracted triples with a reference collection. A triple matches only when every field matches after normalisation, duplicates count once, and extra fields such as a modality make the match stricter
+- **Figures over the whole eval set**: `EvalSet(..., metrics={name: metric(outputs, expecteds)})` computes each metric once per pipeline over all examples and reports it in `PipelineEvaluation.metrics` (and in `to_dict()` when any are defined). Pipelines are still ranked by `quality`. Ready-made: `pooled_triple_precision`, `pooled_triple_recall` and `pooled_triple_f1` count matches over all examples together, and `label_macro_f1` averages the F1 of each label held in one field of a triple, over extraction and labelling together or, with `matched_only=True`, over labelling alone
+- **Margins of error**, in the new `chatcortex.stats`: `mean_interval(scores)` gives the range a pipeline's quality plausibly lies in; `paired_difference(first, second)` compares two pipelines example by example and returns a verdict that is "too close to call" when the range includes zero; `metric_interval(outputs, expecteds, metric)` does the same for a whole-set metric by resampling examples. The default `"betting"` method is valid for any number of examples and under repeated checking (Waudby-Smith and Ramdas, 2023); `"bootstrap"` is narrower but approximate. No new dependency
+
+### Changed
+- Text normalisation in the scorers is cached, which makes resampling a triple metric several times faster. Results are unchanged
+
 ## [0.10.2] - 2026-11-19
 
 ### Added

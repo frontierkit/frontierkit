@@ -14,6 +14,9 @@ from chatcortex import (
     enumerate_pipelines,
     exact_match,
     token_f1,
+    triple_f1,
+    triple_precision,
+    triple_recall,
 )
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "examples"))
@@ -32,6 +35,58 @@ def test_scorers_normalise_case_punctuation_and_articles():
 def test_scorers_reject_an_empty_reference_list():
     with pytest.raises(ValueError, match="reference"):
         token_f1("x", [])
+
+
+REFERENCE_TRIPLES = [
+    ("provider", "must document", "training data"),
+    ("provider", "should monitor", "the system"),
+    ("user", "may request", "an explanation"),
+    ("deployer", "must inform", "affected persons"),
+]
+
+
+def test_triple_scorers_count_exact_matches_after_normalisation():
+    extracted = [
+        ("Provider", "must document", "the training data."),  # matches
+        ["user", "may request", "explanation"],                # matches, as a list
+        ("provider", "must monitor", "the system"),            # wrong predicate
+    ]
+    assert triple_precision(extracted, REFERENCE_TRIPLES) == pytest.approx(2 / 3)
+    assert triple_recall(extracted, REFERENCE_TRIPLES) == pytest.approx(2 / 4)
+    assert triple_f1(extracted, REFERENCE_TRIPLES) == pytest.approx(4 / 7)
+
+
+def test_triple_scorers_count_duplicates_once_and_compare_every_field():
+    repeated = [("user", "may request", "an explanation")] * 3
+    assert triple_precision(repeated, REFERENCE_TRIPLES) == 1.0
+    assert triple_recall(repeated, REFERENCE_TRIPLES) == pytest.approx(1 / 4)
+
+    # A fourth field makes the match stricter: same triple, other modality.
+    assert triple_f1([("a", "does", "b", "mandatory")], [("a", "does", "b", "optional")]) == 0.0
+    assert triple_f1([("a", "does", "b", "mandatory")], [("a", "does", "b", "Mandatory")]) == 1.0
+
+
+def test_triple_scorers_on_empty_collections():
+    for scorer in (triple_precision, triple_recall, triple_f1):
+        assert scorer([], []) == 1.0
+        assert scorer(None, []) == 1.0
+        assert scorer([], REFERENCE_TRIPLES) == 0.0
+        assert scorer(REFERENCE_TRIPLES, []) == 0.0
+        assert scorer([("x", "y", "z")], REFERENCE_TRIPLES) == 0.0
+
+
+@pytest.mark.parametrize(
+    "bad",
+    [
+        "provider must document training data",
+        ["provider must document training data"],
+        [{"subject": "provider", "predicate": "must document", "object": "training data"}],
+        [42],
+    ],
+)
+def test_triple_scorers_reject_unparsed_output(bad):
+    with pytest.raises(TypeError, match="triple"):
+        triple_f1(bad, REFERENCE_TRIPLES)
 
 
 def _component(name, capability, cost=0.0, latency=1.0):

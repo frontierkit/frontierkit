@@ -98,6 +98,33 @@ def test_quality_is_the_mean_score_and_failed_runs_count_as_zero():
     assert scored[("add_one", "rounded")].quality == 0.0
 
 
+def test_each_example_keeps_its_own_score_and_output():
+    frontier = ExhaustiveSynthesizer(_registry()).synthesize(_task())
+    eval_set = _eval_set()
+    scored = _by_components(evaluate_pipelines(frontier, _executor(), eval_set))
+
+    # In example order (inputs 1, 2, 3, 4); flaky fails on the odd ones.
+    flaky = scored[("flaky", "exact")]
+    assert flaky.scores == (0.0, 1.0, 0.0, 1.0)
+    assert flaky.outputs == (None, "answer 4", None, "answer 8")
+    assert scored[BEST].outputs == ("answer 2", "answer 4", "answer 6", "answer 8")
+
+    for evaluation in scored.values():
+        assert len(evaluation.scores) == len(evaluation.outputs) == evaluation.runs
+        assert evaluation.quality == pytest.approx(sum(evaluation.scores) / evaluation.runs)
+
+    # The kept outputs can be graded again without running the pipeline.
+    # add_one is right only for input 1, where 1 + 1 equals 1 * 2.
+    wrong = scored[("add_one", "exact")]
+    assert wrong.scores == (1.0, 0.0, 0.0, 0.0)
+    lenient = EvalSet(eval_set.examples, scorer=lambda output, expected: output[:6] == expected[:6])
+    regraded = [
+        lenient.score(output, example.expected)
+        for output, example in zip(wrong.outputs, eval_set.examples)
+    ]
+    assert regraded == [1.0, 1.0, 1.0, 1.0]
+
+
 def test_cost_is_the_mean_recorded_cost_per_run():
     frontier = ExhaustiveSynthesizer(_registry()).synthesize(_task())
     scored = _by_components(evaluate_pipelines(frontier, _executor(), _eval_set()))
