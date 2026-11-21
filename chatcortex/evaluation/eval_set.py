@@ -15,16 +15,24 @@ candidate pipeline on every example and reports what was measured::
 Quality is the mean score over all examples, counting a run that failed
 part-way as 0. Cost and latency are means of what the executor recorded,
 so they are measured values when the backend measures them.
+
+Some figures are not a mean of per-example scores: precision pooled over
+a whole corpus, or an F1 averaged over classes. Pass those as
+``metrics``, a mapping from a name to ``metric(outputs, expecteds)``.
+Each is computed once per pipeline over all examples and reported in
+``PipelineEvaluation.metrics``. Metrics are reported only; pipelines are
+still ranked by ``quality``.
 """
 
 import math
-from dataclasses import dataclass
-from typing import Any, Callable, Dict, List, Sequence, Tuple
+from dataclasses import dataclass, field
+from typing import Any, Callable, Dict, List, Mapping, Sequence, Tuple
 
 from ..execution.executor import AgentExecutor
 from ..optimization.architecture_candidate import ArchitectureCandidate
 
 Scorer = Callable[[Any, Any], float]
+Metric = Callable[[Sequence[Any], Sequence[Any]], float]
 
 
 @dataclass(frozen=True)
@@ -43,20 +51,63 @@ class EvalSet:
         examples: The cases to run; at least one.
         scorer: ``scorer(output, expected) -> float`` in ``[0, 1]``,
             where 1 is a fully correct output.
+        metrics: Optional figures over the whole set, as
+            ``{name: metric(outputs, expecteds) -> number}``. Both
+            arguments are in example order; the output of a failed run
+            is ``None``.
 
     Raises:
         ValueError: If ``examples`` is empty.
-        TypeError: If ``scorer`` is not callable.
+        TypeError: If ``scorer`` or a metric is not callable, or a
+            metric name is not a string.
     """
 
     examples: Sequence[Example]
     scorer: Scorer
+    metrics: Mapping[str, Metric] = field(default_factory=dict)
 
     def __post_init__(self):
         if not self.examples:
             raise ValueError("an EvalSet needs at least one example")
         if not callable(self.scorer):
             raise TypeError(f"scorer must be callable, {self.scorer!r} given")
+        if not isinstance(self.metrics, Mapping):
+            raise TypeError(
+                "metrics must map a name to a function, "
+                f"{type(self.metrics).__name__} given"
+            )
+        for name, metric in self.metrics.items():
+            if not isinstance(name, str):
+                raise TypeError(f"metric names must be strings, {name!r} given")
+            if not callable(metric):
+                raise TypeError(f"metric {name!r} must be callable, {metric!r} given")
+
+    def measure(self, outputs: Sequence[Any]) -> Dict[str, float]:
+        """Compute every metric for one pipeline's outputs, in example order.
+
+        Raises:
+            ValueError: If there is not one output per example, or a
+                metric returns anything but a finite number.
+        """
+        if len(outputs) != len(self.examples):
+            raise ValueError(
+                f"expected one output per example ({len(self.examples)}), "
+                f"{len(outputs)} given"
+            )
+        expecteds = [example.expected for example in self.examples]
+        measured = {}
+        for name, metric in self.metrics.items():
+            value = metric(list(outputs), expecteds)
+            if (
+                isinstance(value, bool)
+                or not isinstance(value, (int, float))
+                or not math.isfinite(value)
+            ):
+                raise ValueError(
+                    f"metric {name!r} must return a finite number, {value!r} returned"
+                )
+            measured[name] = float(value)
+        return measured
 
     def score(self, output: Any, expected: Any) -> float:
         """Grade one output; ``True``/``False`` count as 1 and 0.
@@ -93,6 +144,13 @@ class PipelineEvaluation:
         cost: Mean recorded cost per run.
         latency_ms: Mean recorded latency per run.
         traces: Every per-step telemetry record, for calibration.
+        scores: The score of each example, in the order of the eval
+            set's examples; a failed run is 0. ``quality`` is their mean.
+        outputs: What the pipeline returned for each example, in the
+            same order; ``None`` for a failed run. Keep these to grade
+            the same run with another scorer without running it again.
+        metrics: The eval set's whole-set metrics by name; empty when
+            the eval set defines none.
     """
 
     candidate: ArchitectureCandidate
@@ -103,10 +161,15 @@ class PipelineEvaluation:
     cost: float
     latency_ms: float
     traces: Tuple[Dict[str, Any], ...]
+    scores: Tuple[float, ...] = ()
+    outputs: Tuple[Any, ...] = ()
+    metrics: Dict[str, float] = field(default_factory=dict)
 
     def to_dict(self) -> dict:
-        """JSON-safe summary (without the candidate graph or raw traces)."""
-        return {
+        """JSON-safe summary (without the candidate graph, raw traces,
+        or per-example scores and outputs). ``metrics`` is included only
+        when the eval set defines some."""
+        summary = {
             "components": list(self.components),
             "runs": self.runs,
             "quality": self.quality,
@@ -114,6 +177,9 @@ class PipelineEvaluation:
             "cost": self.cost,
             "latency_ms": self.latency_ms,
         }
+        if self.metrics:
+            summary["metrics"] = dict(self.metrics)
+        return summary
 
 
 def evaluate_pipeline(
@@ -129,6 +195,7 @@ def evaluate_pipeline(
         )
 
     scores: List[float] = []
+    outputs: List[Any] = []
     successes = 0
     total_cost = 0.0
     total_latency = 0.0
@@ -143,8 +210,10 @@ def evaluate_pipeline(
         if result.success:
             successes += 1
             scores.append(eval_set.score(result.output, example.expected))
+            outputs.append(result.output)
         else:
             scores.append(0.0)
+            outputs.append(None)
 
     runs = len(eval_set.examples)
     return PipelineEvaluation(
@@ -158,6 +227,9 @@ def evaluate_pipeline(
         cost=total_cost / runs,
         latency_ms=total_latency / runs,
         traces=tuple(traces),
+        scores=tuple(scores),
+        outputs=tuple(outputs),
+        metrics=eval_set.measure(outputs),
     )
 
 

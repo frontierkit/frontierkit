@@ -12,6 +12,12 @@ Core capabilities include:
 - Pareto frontier analysis
 """
 
+from .evaluation.corpus_metrics import (
+    label_macro_f1,
+    pooled_triple_f1,
+    pooled_triple_precision,
+    pooled_triple_recall,
+)
 from .evaluation.eval_set import (
     EvalSet,
     Example,
@@ -19,7 +25,14 @@ from .evaluation.eval_set import (
     evaluate_pipelines,
     quality_frontier,
 )
-from .evaluation.scorers import contains_answer, exact_match, token_f1
+from .evaluation.scorers import (
+    contains_answer,
+    exact_match,
+    token_f1,
+    triple_f1,
+    triple_precision,
+    triple_recall,
+)
 from .execution.callable_backend import CallableBackend, StepResult
 from .execution.executor import AgentExecutor, BackendConfigurationError
 from .execution.routed_backend import RoutedBackend
@@ -30,6 +43,13 @@ from .registry.demo_components import build_demo_registry
 from .registry.loader import load_registry
 from .registry.metadata import ComponentMetadata
 from .registry.package import RegistryReport, save_registry, validate_registry_file
+from .stats import (
+    Interval,
+    PairedDifference,
+    mean_interval,
+    metric_interval,
+    paired_difference,
+)
 from .synthesis.beam_synthesizer import BeamSynthesizer
 from .synthesis.budget import SynthesisBudget
 from .synthesis.enumeration import count_pipelines, enumerate_pipelines
@@ -65,6 +85,18 @@ __all__ = [
     "exact_match",
     "contains_answer",
     "token_f1",
+    "triple_precision",
+    "triple_recall",
+    "triple_f1",
+    "pooled_triple_precision",
+    "pooled_triple_recall",
+    "pooled_triple_f1",
+    "label_macro_f1",
+    "Interval",
+    "PairedDifference",
+    "mean_interval",
+    "paired_difference",
+    "metric_interval",
     "enumerate_pipelines",
     "count_pipelines",
     "CapabilityRegistry",
