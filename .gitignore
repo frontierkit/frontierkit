@@ -32,5 +32,8 @@ env/
 .DS_Store
 Thumbs.db
 
+# Answers collected by the drift benchmark
+benchmarks/drift/answers*.jsonl
+
 # Claude Cowork
 AGENTS.md
