@@ -3,7 +3,7 @@
 All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
-## [Unreleased]
+## [0.12.0] - 2026-11-21
 
 ### Added
 - **Answer log.** `LoggedBackend(backend, "answers.jsonl")` writes every step of a run to an append-only file: what was asked, what answered it (endpoint, model and request options, or a version you give your own function), when, and what came back, failures included. A step already answered is read back instead of being called again, so a repeated comparison makes no model calls and adding one pipeline only runs its new steps. `label` keeps separate samples of the same step, for example one per day
