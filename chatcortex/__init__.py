@@ -66,6 +66,7 @@ from .synthesis.progressive_pareto_beam_synthesizer import (
 )
 from .synthesis.random_synthesizer import RandomSynthesizer
 from .synthesis.task_specification import TaskSpecification
+from .verify import Verification, verify_decision
 
 __all__ = [
     "TaskSpecification",
@@ -110,6 +111,8 @@ __all__ = [
     "Decision",
     "record_decision",
     "load_decision",
+    "Verification",
+    "verify_decision",
     "enumerate_pipelines",
     "count_pipelines",
     "CapabilityRegistry",

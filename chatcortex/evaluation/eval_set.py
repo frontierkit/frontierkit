@@ -158,6 +158,8 @@ class PipelineEvaluation:
             the same run with another scorer without running it again.
         metrics: The eval set's whole-set metrics by name; empty when
             the eval set defines none.
+        latencies: The recorded time of each example in milliseconds,
+            all its steps together, in the same order.
         errors: For each example, in the same order, ``None`` when the
             run finished and otherwise what stopped it: one of the kinds
             in :mod:`chatcortex.execution.errors`, such as
@@ -176,6 +178,7 @@ class PipelineEvaluation:
     outputs: Tuple[Any, ...] = ()
     metrics: Dict[str, float] = field(default_factory=dict)
     errors: Tuple[Optional[str], ...] = ()
+    latencies: Tuple[float, ...] = ()
 
     @property
     def error_counts(self) -> Dict[str, int]:
@@ -240,6 +243,7 @@ def evaluate_pipeline(
     scores: List[float] = []
     outputs: List[Any] = []
     errors: List[Optional[str]] = []
+    latencies: List[float] = []
     successes = 0
     total_cost = 0.0
     total_latency = 0.0
@@ -250,7 +254,8 @@ def evaluate_pipeline(
         records = result.telemetry.records
         traces.extend(dict(record) for record in records)
         total_cost += sum(record["cost"] for record in records)
-        total_latency += sum(record["latency_ms"] for record in records)
+        latencies.append(sum(record["latency_ms"] for record in records))
+        total_latency += latencies[-1]
         if result.success:
             successes += 1
             scores.append(eval_set.score(result.output, example.expected))
@@ -277,6 +282,7 @@ def evaluate_pipeline(
         outputs=tuple(outputs),
         metrics=eval_set.measure(outputs),
         errors=tuple(errors),
+        latencies=tuple(latencies),
     )
 
 
