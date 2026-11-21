@@ -1,0 +1,47 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "chatcortex"
+version = "0.13.0"
+description = "Renamed to frontierkit. This package installs frontierkit and keeps `import chatcortex` working."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+
+authors = [
+    { name = "Siddharth Saraswat" }
+]
+
+classifiers = [
+    "Development Status :: 7 - Inactive",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3"
+]
+
+dependencies = [
+    "frontierkit>=0.13.0"
+]
+
+[project.optional-dependencies]
+
+real = [
+    "frontierkit[real]>=0.13.0"
+]
+
+viz = [
+    "frontierkit[viz]>=0.13.0"
+]
+
+[project.urls]
+Homepage = "https://frontierkit.github.io/frontierkit/"
+Repository = "https://github.com/frontierkit/frontierkit"
+"New package" = "https://pypi.org/project/frontierkit/"
+
+[project.scripts]
+chatcortex = "frontierkit.cli:main"
+chatcortex-registry = "frontierkit.registry.cli:main"
+
+[tool.setuptools]
+packages = ["chatcortex"]

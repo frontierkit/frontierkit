@@ -2,7 +2,7 @@
 
 Runs offline: no keys, no network. It reads the replies collect.py stored
 and evaluates every combination of context, model and postprocess step
-with ChatCortex's own executor and scoring, as a full grid search would.
+with FrontierKit's own executor and scoring, as a full grid search would.
 Pipelines whose replies are not all collected yet are listed as
 incomplete.
 
@@ -16,7 +16,7 @@ import itertools
 import sys
 from typing import Any, List, Sequence, Tuple
 
-from chatcortex import (
+from frontierkit import (
     AgentExecutor,
     AgentGraph,
     BackendConfigurationError,
@@ -28,8 +28,8 @@ from chatcortex import (
     evaluate_pipelines,
     quality_frontier,
 )
-from chatcortex.execution.executor import ProbeResult
-from chatcortex.optimization.architecture_candidate import ArchitectureCandidate
+from frontierkit.execution.executor import ProbeResult
+from frontierkit.optimization.architecture_candidate import ArchitectureCandidate
 
 from .qa import (
     CONTEXT_VARIANTS,

@@ -22,9 +22,9 @@ from benchmarks.qa_frontier.replay import (
     Point,
     Replay,
     at_budget,
-    chatcortex_strategy,
     compare,
     complete_models,
+    frontierkit_strategy,
     grid_strategy,
     random_strategy,
 )
@@ -222,9 +222,9 @@ def test_grid_and_random_find_the_whole_frontier_by_the_full_budget(tmp_path):
         assert [p.calls for p in points] == sorted(p.calls for p in points)
 
 
-def test_chatcortex_strategy_reports_a_point_per_round_within_the_grid(tmp_path):
+def test_frontierkit_strategy_reports_a_point_per_round_within_the_grid(tmp_path):
     replay = _replay(tmp_path)
-    points = chatcortex_strategy(replay, iterations=3)
+    points = frontierkit_strategy(replay, iterations=3)
     assert len(points) == 3
     assert all(0 < p.calls <= replay.total_calls for p in points)
     assert [p.calls for p in points] == sorted(p.calls for p in points)
@@ -246,10 +246,10 @@ def test_compare_adds_a_row_per_explore_value(tmp_path):
     replay = _replay(tmp_path)
     strategies, _ = compare(replay, explore_values=(0, 1, 3), iterations=3)
     assert list(strategies) == [
-        "grid", "random (mean of 20)", "chatcortex",
-        "chatcortex, explore 1", "chatcortex, explore 3",
+        "grid", "random (mean of 20)", "frontierkit",
+        "frontierkit, explore 1", "frontierkit, explore 3",
     ]
-    coverage, best = strategies["chatcortex, explore 3"](replay.total_calls)
+    coverage, best = strategies["frontierkit, explore 3"](replay.total_calls)
     assert 0.0 <= coverage <= 1.0 and 0.0 <= best <= 1.0
 
 

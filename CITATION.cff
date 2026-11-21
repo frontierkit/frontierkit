@@ -1,9 +1,9 @@
 cff-version: 1.2.0
-title: "ChatCortex: Multi-Objective Architecture Synthesis for AI Agents"
+title: "FrontierKit: Multi-Objective Architecture Synthesis for AI Agents"
 message: "If you use this project in your research, please cite it."
 authors:
   - family-names: Saraswat
     given-names: Siddharth
-repository-code: "https://github.com/siddharth1012/chatCortex"
+repository-code: "https://github.com/frontierkit/frontierkit"
 license: MIT
-version: 0.12.0
+version: 0.13.0

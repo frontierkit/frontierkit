@@ -13,7 +13,7 @@ Run from the repo root:
 
 from callable_pipeline import IMPLEMENTATIONS, build_registry
 
-from chatcortex import (
+from frontierkit import (
     AgentExecutor,
     CallableBackend,
     EvalSet,

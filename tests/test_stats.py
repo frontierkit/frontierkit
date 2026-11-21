@@ -4,7 +4,7 @@ import random
 
 import pytest
 
-from chatcortex import (
+from frontierkit import (
     Interval,
     PairedDifference,
     mean_interval,
@@ -12,7 +12,7 @@ from chatcortex import (
     paired_difference,
     pooled_triple_f1,
 )
-from chatcortex.stats import intervals
+from frontierkit.stats import intervals
 
 METHODS = ("betting", "bootstrap")
 

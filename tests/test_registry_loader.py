@@ -2,7 +2,7 @@ import json
 
 import pytest
 
-from chatcortex import CapabilityRegistry, load_registry
+from frontierkit import CapabilityRegistry, load_registry
 
 
 def load_document_through_loader(tmp_path, document):

@@ -6,7 +6,7 @@ from datetime import datetime, timezone
 
 import pytest
 
-from chatcortex import (
+from frontierkit import (
     AgentExecutor,
     AnswerLog,
     CallableBackend,
@@ -21,8 +21,8 @@ from chatcortex import (
     enumerate_pipelines,
     evaluate_pipelines,
 )
-from chatcortex.adapters.openai_backend import OpenAIBackend
-from chatcortex.store import fingerprint, identify
+from frontierkit.adapters.openai_backend import OpenAIBackend
+from frontierkit.store import fingerprint, identify
 
 
 def component(name, capability):

@@ -27,8 +27,8 @@ from benchmarks.qa_frontier.qa import (
     load_questions,
     score,
 )
-from chatcortex.stats.selection import BestOf, best_of
-from chatcortex.store import AnswerLog
+from frontierkit.stats.selection import BestOf, best_of
+from frontierkit.store import AnswerLog
 
 from .collect import DEFAULT_LOG
 

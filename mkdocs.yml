@@ -1,8 +1,8 @@
-site_name: ChatCortex
+site_name: FrontierKit
 site_description: Find out which model and prompt answer your questions best, measured on free endpoints.
-site_url: https://siddharth1012.github.io/chatCortex/
-repo_url: https://github.com/siddharth1012/chatCortex
-repo_name: siddharth1012/chatCortex
+site_url: https://frontierkit.github.io/frontierkit/
+repo_url: https://github.com/frontierkit/frontierkit
+repo_name: frontierkit/frontierkit
 edit_uri: edit/main/docs/
 
 nav:
@@ -11,7 +11,7 @@ nav:
   - Use it from Python: USAGE.md
   - How it works: ARCHITECTURE.md
   - Benchmarks: BENCHMARKS.md
-  - Changelog: https://github.com/siddharth1012/chatCortex/blob/main/CHANGELOG.md
+  - Changelog: https://github.com/frontierkit/frontierkit/blob/main/CHANGELOG.md
 
 theme:
   name: material

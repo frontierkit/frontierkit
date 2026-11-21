@@ -1,16 +1,16 @@
-# Contributing to ChatCortex
+# Contributing to FrontierKit
 
-Thank you for your interest in contributing to ChatCortex.
+Thank you for your interest in contributing to FrontierKit.
 
-ChatCortex is a research framework for automated synthesis and optimization of AI agent architectures.
+FrontierKit is a research framework for automated synthesis and optimization of AI agent architectures.
 
 ## Development Setup
 
 Clone the repository:
 
 ```bash
-git clone https://github.com/siddharth1012/chatCortex
-cd chatCortex
+git clone https://github.com/frontierkit/frontierkit
+cd frontierkit
 ```
 
 Create a virtual environment:
@@ -40,7 +40,7 @@ python examples/quickstart.py
 
 ## Code Style
 
-ChatCortex uses:
+FrontierKit uses:
 
 * **black** for formatting
 * **ruff** for linting
@@ -49,7 +49,7 @@ Run:
 
 ```bash
 black .
-ruff check chatcortex tests examples
+ruff check frontierkit tests examples
 ```
 
 ## Pull Requests
@@ -77,7 +77,7 @@ last line.
 
 ## Research Contributions
 
-ChatCortex welcomes contributions related to:
+FrontierKit welcomes contributions related to:
 
 * architecture search algorithms
 * multi-objective optimization

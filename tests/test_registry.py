@@ -1,6 +1,6 @@
 import pytest
 
-from chatcortex import CapabilityRegistry, ComponentMetadata
+from frontierkit import CapabilityRegistry, ComponentMetadata
 
 
 def make_component(name="comp", capability="retrieval", privacy="internal"):
@@ -52,7 +52,7 @@ def test_metadata_is_immutable():
 
 
 def test_demo_registry_populated():
-    from chatcortex import build_demo_registry
+    from frontierkit import build_demo_registry
 
     reg = build_demo_registry(capabilities=("retrieval", "generation"))
     assert len(reg.get_by_capability("retrieval")) == 4
@@ -96,7 +96,7 @@ def test_required_json_fields_derive_from_the_dataclass():
     loader the moment it is declared."""
     import dataclasses
 
-    from chatcortex.registry.metadata import REQUIRED_JSON_FIELDS
+    from frontierkit.registry.metadata import REQUIRED_JSON_FIELDS
 
     assert REQUIRED_JSON_FIELDS == (
         "name",

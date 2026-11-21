@@ -1,4 +1,4 @@
-"""Install-path tests for the OpenAI adapter (pip install chatcortex[real]).
+"""Install-path tests for the OpenAI adapter (pip install frontierkit[real]).
 
 These exercise what the stubbed-client tests in
 ``test_executor_backend.py`` cannot: the lazy ``import openai`` branch,
@@ -18,9 +18,9 @@ from pathlib import Path
 
 import pytest
 
-from chatcortex import AgentGraph, ComponentMetadata
-from chatcortex.adapters.openai_backend import OpenAIBackend
-from chatcortex.execution.executor import AgentExecutor, ProbeResult
+from frontierkit import AgentGraph, ComponentMetadata
+from frontierkit.adapters.openai_backend import OpenAIBackend
+from frontierkit.execution.executor import AgentExecutor, ProbeResult
 
 # Both are real ``openai`` transport exception type names; which one a
 # given box surfaces for a dead endpoint depends on its firewall
@@ -51,10 +51,10 @@ def _chain():
 
 
 def test_package_import_never_touches_openai():
-    """Fresh interpreter: importing chatcortex must not load the SDK."""
+    """Fresh interpreter: importing frontierkit must not load the SDK."""
     pytest.importorskip("openai")
     code = (
-        "import sys; import chatcortex; import chatcortex.execution; "
+        "import sys; import frontierkit; import frontierkit.execution; "
         "assert not [m for m in sys.modules if m.split('.')[0] == 'openai']; "
         "print('clean')"
     )
@@ -80,7 +80,7 @@ def test_construction_without_sdk_raises_with_install_hint():
     if importlib.util.find_spec("openai") is not None:
         pytest.skip("openai is installed; the missing-SDK path is unreachable")
 
-    with pytest.raises(ImportError, match=r"chatcortex\[real\]"):
+    with pytest.raises(ImportError, match=r"frontierkit\[real\]"):
         OpenAIBackend()
 
 

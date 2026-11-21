@@ -11,7 +11,7 @@ and after it has been retired.
 
 The same check from the command line, for a scheduled job::
 
-    chatcortex verify decision.json --setup examples/verify_decision.py
+    frontierkit verify decision.json --setup examples/verify_decision.py
 
 ``setup()`` below is what that command calls.
 """
@@ -19,7 +19,7 @@ The same check from the command line, for a scheduled job::
 import tempfile
 from pathlib import Path
 
-from chatcortex import (
+from frontierkit import (
     AgentExecutor,
     CallableBackend,
     CapabilityRegistry,
@@ -71,7 +71,7 @@ def component(name: str) -> ComponentMetadata:
 
 
 def setup() -> dict:
-    """What the comparison is made with; ``chatcortex verify`` calls this."""
+    """What the comparison is made with; ``frontierkit verify`` calls this."""
     registry = CapabilityRegistry()
     registry.register(component("careful"))
     registry.register(component("sloppy"))

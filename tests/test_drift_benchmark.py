@@ -3,8 +3,8 @@
 from benchmarks.drift.collect import collect_sample, prompts_for
 from benchmarks.drift.report import changes, choices, failures_by_sample, scores_by_sample
 from benchmarks.qa_frontier.qa import SAMPLE_DATA, SQUAD_SUBSET, ModelSpec, load_questions
-from chatcortex.execution.executor import ProbeResult
-from chatcortex.store import AnswerLog
+from frontierkit.execution.executor import ProbeResult
+from frontierkit.store import AnswerLog
 
 QUESTIONS = load_questions(SAMPLE_DATA)
 MODELS = [

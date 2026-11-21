@@ -7,8 +7,8 @@ from types import SimpleNamespace
 
 import pytest
 
-from chatcortex import ComponentMetadata
-from chatcortex.adapters.openai_backend import OpenAIBackend, TokenPrice
+from frontierkit import ComponentMetadata
+from frontierkit.adapters.openai_backend import OpenAIBackend, TokenPrice
 
 DECLARED_COST = 0.05
 

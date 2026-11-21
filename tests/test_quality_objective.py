@@ -5,7 +5,7 @@ import math
 
 import pytest
 
-from chatcortex import (
+from frontierkit import (
     AgentExecutor,
     AgentGraph,
     CallableBackend,
@@ -18,11 +18,11 @@ from chatcortex import (
     build_demo_registry,
     run_closed_loop,
 )
-from chatcortex.optimization.architecture_candidate import ArchitectureCandidate
-from chatcortex.optimization.pareto import ParetoSet, dominates
-from chatcortex.registry.loader import load_registry
-from chatcortex.registry.package import save_registry
-from chatcortex.telemetry.calibration import calibrate_quality
+from frontierkit.optimization.architecture_candidate import ArchitectureCandidate
+from frontierkit.optimization.pareto import ParetoSet, dominates
+from frontierkit.registry.loader import load_registry
+from frontierkit.registry.package import save_registry
+from frontierkit.telemetry.calibration import calibrate_quality
 
 
 def _component(name, capability, latency=10.0, quality=None):

@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pytest
 
-from chatcortex import (
+from frontierkit import (
     CapabilityRegistry,
     ComponentMetadata,
     TaskSpecification,

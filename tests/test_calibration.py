@@ -1,7 +1,7 @@
 import pytest
 
-from chatcortex import CapabilityRegistry, ComponentMetadata
-from chatcortex.telemetry.calibration import calibrate
+from frontierkit import CapabilityRegistry, ComponentMetadata
+from frontierkit.telemetry.calibration import calibrate
 
 
 def make_registry():
@@ -105,7 +105,7 @@ def test_components_absent_from_traces_keep_prior():
 def test_calibration_routes_replacements_through_update(monkeypatch):
     """The plan-letter mechanism: replacements go through
     CapabilityRegistry.update, not through re-registration."""
-    from chatcortex.telemetry import calibration as calibration_module
+    from frontierkit.telemetry import calibration as calibration_module
 
     updates = []
 
@@ -187,8 +187,8 @@ def test_alpha_nonfinite_raises_instead_of_silent_nan_metadata():
 
 
 def _single(reliability=0.5, latency=100.0, cost=0.01):
-    from chatcortex.registry.capability_registry import CapabilityRegistry
-    from chatcortex.registry.metadata import ComponentMetadata
+    from frontierkit.registry.capability_registry import CapabilityRegistry
+    from frontierkit.registry.metadata import ComponentMetadata
 
     registry = CapabilityRegistry()
     registry.register(
@@ -216,14 +216,14 @@ def _traces(successes, failures, latency=100.0, cost=0.01):
 def test_prior_strength_weighs_by_record_count():
     # prior 0.5 counted as 10 observations, then 10 successes observed:
     # (10 * 0.5 + 10 * 1.0) / 20 = 0.75
-    from chatcortex.telemetry.calibration import calibrate
+    from frontierkit.telemetry.calibration import calibrate
 
     result = calibrate(_single(), _traces(10, 0), prior_strength=10)
     assert result.get("c").reliability_score == pytest.approx(0.75)
 
 
 def test_prior_strength_moves_less_on_little_evidence():
-    from chatcortex.telemetry.calibration import calibrate
+    from frontierkit.telemetry.calibration import calibrate
 
     few = calibrate(_single(), _traces(2, 0), prior_strength=20)
     many = calibrate(_single(), _traces(200, 0), prior_strength=20)
@@ -233,7 +233,7 @@ def test_prior_strength_moves_less_on_little_evidence():
 
 
 def test_prior_strength_applies_to_latency_and_cost():
-    from chatcortex.telemetry.calibration import calibrate
+    from frontierkit.telemetry.calibration import calibrate
 
     result = calibrate(
         _single(latency=100.0, cost=0.01),
@@ -245,7 +245,7 @@ def test_prior_strength_applies_to_latency_and_cost():
 
 
 def test_prior_strength_zero_replaces_the_prior_and_overrides_alpha():
-    from chatcortex.telemetry.calibration import calibrate
+    from frontierkit.telemetry.calibration import calibrate
 
     result = calibrate(_single(), _traces(3, 1), alpha=0.0, prior_strength=0)
     assert result.get("c").reliability_score == pytest.approx(0.75)
@@ -253,7 +253,7 @@ def test_prior_strength_zero_replaces_the_prior_and_overrides_alpha():
 
 @pytest.mark.parametrize("bad", [-1.0, float("nan"), float("inf")])
 def test_prior_strength_invalid_raises(bad):
-    from chatcortex.telemetry.calibration import calibrate
+    from frontierkit.telemetry.calibration import calibrate
 
     with pytest.raises(ValueError, match="prior_strength"):
         calibrate(_single(), _traces(1, 0), prior_strength=bad)

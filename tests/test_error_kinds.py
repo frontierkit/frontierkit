@@ -4,7 +4,7 @@ import time
 
 import pytest
 
-from chatcortex import (
+from frontierkit import (
     AgentExecutor,
     CallableBackend,
     CapabilityRegistry,
@@ -17,9 +17,9 @@ from chatcortex import (
     enumerate_pipelines,
     evaluate_pipelines,
 )
-from chatcortex.adapters.openai_backend import OpenAIBackend
-from chatcortex.execution.errors import SERVICE_ERRORS
-from chatcortex.execution.executor import ProbeResult
+from frontierkit.adapters.openai_backend import OpenAIBackend
+from frontierkit.execution.errors import SERVICE_ERRORS
+from frontierkit.execution.executor import ProbeResult
 
 
 class RateLimitError(Exception):

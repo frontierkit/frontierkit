@@ -1,6 +1,6 @@
 {
   "meta": {
-    "chatcortex_version": "0.6.0",
+    "frontierkit_version": "0.6.0",
     "python": "3.10.4",
     "stage_setup": "5-stage demo registry, 4 variants per capability (4**5 = 1024 candidate chains)",
     "exact_frontier_size": 27,

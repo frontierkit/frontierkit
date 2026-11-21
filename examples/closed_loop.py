@@ -14,13 +14,13 @@ Run from the repo root:
 
 import dataclasses
 
-from chatcortex.execution.executor import AgentExecutor
-from chatcortex.loop import run_closed_loop
-from chatcortex.registry.capability_registry import CapabilityRegistry
-from chatcortex.synthesis.progressive_pareto_beam_synthesizer import (
+from frontierkit.execution.executor import AgentExecutor
+from frontierkit.loop import run_closed_loop
+from frontierkit.registry.capability_registry import CapabilityRegistry
+from frontierkit.synthesis.progressive_pareto_beam_synthesizer import (
     ProgressiveParetoBeamSynthesizer,
 )
-from chatcortex.synthesis.task_specification import TaskSpecification
+from frontierkit.synthesis.task_specification import TaskSpecification
 
 ITERATIONS = 16
 # The declared value counts as this many observations: a component seen
@@ -148,6 +148,6 @@ def main():
 
 
 if __name__ == "__main__":
-    from chatcortex.registry.demo_components import build_demo_registry
+    from frontierkit.registry.demo_components import build_demo_registry
 
     main()

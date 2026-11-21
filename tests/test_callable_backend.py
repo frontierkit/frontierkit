@@ -2,7 +2,7 @@
 
 import pytest
 
-from chatcortex import (
+from frontierkit import (
     AgentExecutor,
     AgentGraph,
     BackendConfigurationError,

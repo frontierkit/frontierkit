@@ -11,7 +11,7 @@ Set any of these keys, then run from the repo root:
     export GROQ_API_KEY=...        # Groq
     export OPENROUTER_API_KEY=...  # OpenRouter (free models only by default)
     export ANTHROPIC_API_KEY=...   # Claude, through its OpenAI-compatible endpoint
-    pip install "chatcortex[real]"
+    pip install "frontierkit[real]"
     python examples/compare_endpoints.py
 
 Optional: SAIA_MODEL, NVIDIA_MODEL, GROQ_MODEL, OPENROUTER_MODEL and
@@ -31,7 +31,7 @@ this setup card and exits 0.
 import os
 import sys
 
-from chatcortex import (
+from frontierkit import (
     AgentExecutor,
     CapabilityRegistry,
     ComponentMetadata,
@@ -42,7 +42,7 @@ from chatcortex import (
     TaskSpecification,
     evaluate_pipelines,
 )
-from chatcortex.adapters.openai_backend import TokenPrice
+from frontierkit.adapters.openai_backend import TokenPrice
 
 # Vendors differ in which request options they accept, so each row
 # carries its own. Current Claude models reject a temperature below 1 and
@@ -157,7 +157,7 @@ def suggest_models(row, limit=40):
 
 def main():
     try:
-        from chatcortex.adapters.openai_backend import OpenAIBackend
+        from frontierkit.adapters.openai_backend import OpenAIBackend
     except ImportError:  # pragma: no cover
         OpenAIBackend = None
 

@@ -13,6 +13,6 @@ Minimal code snippet or steps.
 **Expected behavior**
 
 **Environment**
-- ChatCortex version:
+- FrontierKit version:
 - Python version:
 - OS:

@@ -1,6 +1,6 @@
-# ChatCortex Benchmark Experiments
+# FrontierKit Benchmark Experiments
 
-This document summarizes the experimental evaluation of the ChatCortex synthesis framework.
+This document summarizes the experimental evaluation of the FrontierKit synthesis framework.
 
 The experiments evaluate how different synthesis algorithms recover Pareto-optimal architectures under bounded evaluation budgets.
 
@@ -92,7 +92,7 @@ ProgressiveParetoBeamSynthesizer
 # Reproducibility
 
 The tables below are **generated, not hand-written**: they were measured by
-`scripts/regenerate_benchmarks.py` on chatcortex 0.6.0
+`scripts/regenerate_benchmarks.py` on frontierkit 0.6.0
 (Python 3.10.4), using the 5-stage demo registry (4 tradeoff
 variants per capability, so 4**5 = 1024 candidate chains) whose exact Pareto
 frontier contains 27 architectures. The earlier

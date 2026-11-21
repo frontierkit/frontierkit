@@ -1,6 +1,6 @@
-from chatcortex import AgentGraph
-from chatcortex.optimization.architecture_candidate import ArchitectureCandidate
-from chatcortex.optimization.pareto import ParetoSet, compute_pareto_front, dominates
+from frontierkit import AgentGraph
+from frontierkit.optimization.architecture_candidate import ArchitectureCandidate
+from frontierkit.optimization.pareto import ParetoSet, compute_pareto_front, dominates
 
 
 def cand(cost, latency, reliability):

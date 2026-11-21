@@ -50,7 +50,7 @@ Run just this module with::
 
 import pytest
 
-from chatcortex import (
+from frontierkit import (
     BeamSynthesizer,
     ExhaustiveSynthesizer,
     HeuristicSynthesizer,
@@ -60,9 +60,9 @@ from chatcortex import (
     SynthesisBudget,
     TaskSpecification,
 )
-from chatcortex.evaluation.approximation_metrics import average_regret
-from chatcortex.optimization.pareto import dominates, frontier_coverage
-from chatcortex.synthesis.heuristic_synthesizer import SynthesisError
+from frontierkit.evaluation.approximation_metrics import average_regret
+from frontierkit.optimization.pareto import dominates, frontier_coverage
+from frontierkit.synthesis.heuristic_synthesizer import SynthesisError
 
 # --- Recorded reference frontier -----------------------------------------------
 # metrics are (total_cost, total_latency, total_reliability), rounded to 6dp.

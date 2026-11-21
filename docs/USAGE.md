@@ -1,10 +1,10 @@
-# Using ChatCortex from Python
+# Using FrontierKit from Python
 
 The [get-started guide](GUIDE.md) runs a ready-made script. This page shows
 the pieces that script is built from, so you can compare anything: your own
 retrievers, prompts, checkers and models.
 
-Everything here is importable from `chatcortex` unless noted.
+Everything here is importable from `frontierkit` unless noted.
 
 ## The three ideas
 
@@ -13,11 +13,11 @@ Everything here is importable from `chatcortex` unless noted.
   kept in a `CapabilityRegistry`.
 - A **task** (`TaskSpecification`) names the steps a pipeline needs, in order,
   plus optional limits on cost, latency and privacy.
-- A **pipeline** is one component per step. ChatCortex lists or searches the
+- A **pipeline** is one component per step. FrontierKit lists or searches the
   possible pipelines, runs them, and measures what they do.
 
 ```python
-from chatcortex import CapabilityRegistry, ComponentMetadata, TaskSpecification
+from frontierkit import CapabilityRegistry, ComponentMetadata, TaskSpecification
 
 registry = CapabilityRegistry()
 registry.register(ComponentMetadata(
@@ -38,7 +38,7 @@ Back each component with a plain Python function. Each function receives the
 previous step's output and returns its own.
 
 ```python
-from chatcortex import AgentExecutor, CallableBackend
+from frontierkit import AgentExecutor, CallableBackend
 
 backend = CallableBackend({
     "retrieve_keyword": lambda question: search(question),
@@ -58,17 +58,17 @@ stops the pipeline. Cost is the declared `cost_per_call` unless the function
 returns `StepResult(output, cost=...)`.
 
 Runnable version:
-[examples/callable_pipeline.py](https://github.com/siddharth1012/chatCortex/blob/main/examples/callable_pipeline.py).
+[examples/callable_pipeline.py](https://github.com/frontierkit/frontierkit/blob/main/examples/callable_pipeline.py).
 
 ## Call models from any vendor
 
 `OpenAIBackend` talks to any vendor or local server that accepts OpenAI-style
-chat requests. Install the extra first: `pip install "chatcortex[real]"`.
+chat requests. Install the extra first: `pip install "frontierkit[real]"`.
 
 ```python
 import os
-from chatcortex import RoutedBackend
-from chatcortex.adapters.openai_backend import OpenAIBackend
+from frontierkit import RoutedBackend
+from frontierkit.adapters.openai_backend import OpenAIBackend
 
 backend = RoutedBackend({
     "model_a": OpenAIBackend(model="model-a", base_url="https://vendor-a.example/v1",
@@ -91,7 +91,7 @@ Give the backend your prices and each call is costed from the token counts the
 vendor reports:
 
 ```python
-from chatcortex.adapters.openai_backend import OpenAIBackend, TokenPrice
+from frontierkit.adapters.openai_backend import OpenAIBackend, TokenPrice
 
 backend = OpenAIBackend(
     model="your-model",
@@ -108,7 +108,7 @@ An `EvalSet` pairs example inputs with a scorer. `evaluate_pipelines` runs each
 pipeline on every example and reports what was measured.
 
 ```python
-from chatcortex import (
+from frontierkit import (
     EvalSet, Example, enumerate_pipelines, evaluate_pipelines,
     quality_frontier, token_f1,
 )
@@ -178,7 +178,7 @@ Wrap any backend in a `LoggedBackend` and every step is written to a file. A
 step that was already answered is read from the file instead of being run:
 
 ```python
-from chatcortex import LoggedBackend
+from frontierkit import LoggedBackend
 
 backend = LoggedBackend(my_backend, "answers.jsonl")
 evaluations = evaluate_pipelines(pipelines, AgentExecutor(backend=backend), eval_set)
@@ -211,7 +211,7 @@ The top score among twenty pipelines is flattered: part of it is luck on these
 examples. `best_of` takes that luck out.
 
 ```python
-from chatcortex import best_of
+from frontierkit import best_of
 
 result = best_of({e.components: e.scores for e in evaluations})
 result.winner        # the pipeline with the highest score
@@ -230,7 +230,7 @@ cautious. All pipelines must have been scored on the same examples.
 `record_decision` saves the choice and the evidence for it as one JSON file:
 
 ```python
-from chatcortex import record_decision
+from frontierkit import record_decision
 
 decision = record_decision(evaluations, eval_set, backend=backend, note="for the report")
 decision.save("decision.json")
@@ -253,7 +253,7 @@ A model behind an API can change, slow down or be retired without notice.
 compares the fresh run with the saved record:
 
 ```python
-from chatcortex import load_decision, verify_decision
+from frontierkit import load_decision, verify_decision
 
 decision = load_decision("decision.json")
 check = verify_decision(decision, pipelines, executor, eval_set)
@@ -296,7 +296,7 @@ def setup():
 ```
 
 ```bash
-chatcortex verify decision.json --setup compare.py
+frontierkit verify decision.json --setup compare.py
 ```
 
 The exit code is 0 for valid, 1 for a quality drop, 3 for slower, 4 for
@@ -327,7 +327,7 @@ When a pipeline extracts triples rather than answering a question,
 with a reference set:
 
 ```python
-from chatcortex import triple_f1, triple_precision, triple_recall
+from frontierkit import triple_f1, triple_precision, triple_recall
 
 eval_set = EvalSet(
     examples=[Example(document_text, expected=[
@@ -358,7 +358,7 @@ in a corpus, or an F1 averaged over labels. Pass those as `metrics`. Each is a
 function of all outputs and all references, computed once per pipeline:
 
 ```python
-from chatcortex import (
+from frontierkit import (
     label_macro_f1, pooled_triple_f1, pooled_triple_precision, pooled_triple_recall,
 )
 
@@ -398,7 +398,7 @@ lower. `mean_interval` puts a range around it, and `paired_difference` says
 whether two pipelines can be told apart:
 
 ```python
-from chatcortex import mean_interval, paired_difference
+from frontierkit import mean_interval, paired_difference
 
 interval = mean_interval(best.scores)
 interval.estimate, interval.low, interval.high     # 0.92, 0.55, 1.0
@@ -428,7 +428,7 @@ at 200. The range need not be centred on the estimate.
 For a metric over the whole set, `metric_interval` resamples the examples:
 
 ```python
-from chatcortex import metric_interval
+from frontierkit import metric_interval
 
 expecteds = [example.expected for example in eval_set.examples]
 metric_interval(evaluation.outputs, expecteds, pooled_triple_f1)
@@ -448,7 +448,7 @@ scores the ones it has not scored yet, estimates how good each component is
 from the scores, and proposes again.
 
 ```python
-from chatcortex import ExhaustiveSynthesizer, run_closed_loop
+from frontierkit import ExhaustiveSynthesizer, run_closed_loop
 
 records = run_closed_loop(
     registry, task,
@@ -476,7 +476,7 @@ Without running anything, a synthesizer returns the pipelines that are not
 beaten on declared cost, latency and reliability:
 
 ```python
-from chatcortex import BeamSynthesizer, build_demo_registry
+from frontierkit import BeamSynthesizer, build_demo_registry
 
 registry = build_demo_registry(capabilities=("retrieval", "generation", "verification"))
 task = TaskSpecification(
@@ -519,7 +519,7 @@ beat the declared values on average.
 ## Save and check registries
 
 ```python
-from chatcortex import load_registry, save_registry, validate_registry_file
+from frontierkit import load_registry, save_registry, validate_registry_file
 
 save_registry(registry, "registry.json")     # writes, then reloads to prove it
 validate_registry_file("registry.json").valid
@@ -527,7 +527,7 @@ registry = load_registry("registry.json")
 ```
 
 ```bash
-chatcortex-registry validate registry.json
+frontierkit-registry validate registry.json
 ```
 
 Errors name the row and the field. Measured quality estimates are saved with

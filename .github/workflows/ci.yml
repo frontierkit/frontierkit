@@ -16,7 +16,7 @@ jobs:
       - name: Install ruff
         run: pip install ruff
       - name: Lint
-        run: ruff check chatcortex tests examples benchmarks
+        run: ruff check frontierkit tests examples benchmarks compat
 
   test:
     runs-on: ubuntu-latest

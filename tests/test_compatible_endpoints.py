@@ -9,7 +9,7 @@ from types import SimpleNamespace
 
 import pytest
 
-from chatcortex import (
+from frontierkit import (
     AgentExecutor,
     AgentGraph,
     BackendConfigurationError,
@@ -18,7 +18,7 @@ from chatcortex import (
     ComponentMetadata,
     RoutedBackend,
 )
-from chatcortex.adapters.openai_backend import OpenAIBackend
+from frontierkit.adapters.openai_backend import OpenAIBackend
 
 
 def _component(name):

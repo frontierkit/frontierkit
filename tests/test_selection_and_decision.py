@@ -6,7 +6,7 @@ from datetime import datetime, timezone
 
 import pytest
 
-from chatcortex import (
+from frontierkit import (
     AgentExecutor,
     CallableBackend,
     CapabilityRegistry,

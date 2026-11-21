@@ -4,14 +4,14 @@ import json
 
 import pytest
 
-from chatcortex import (
+from frontierkit import (
     RegistryReport,
     build_demo_registry,
     load_registry,
     save_registry,
     validate_registry_file,
 )
-from chatcortex.registry.cli import main as cli_main
+from frontierkit.registry.cli import main as cli_main
 
 
 def test_save_round_trips_and_writes_only_loader_shape(tmp_path):
