@@ -12,6 +12,7 @@ Core capabilities include:
 - Pareto frontier analysis
 """
 
+from .decision import Decision, load_decision, record_decision
 from .evaluation.corpus_metrics import (
     label_macro_f1,
     pooled_triple_f1,
@@ -45,12 +46,15 @@ from .registry.loader import load_registry
 from .registry.metadata import ComponentMetadata
 from .registry.package import RegistryReport, save_registry, validate_registry_file
 from .stats import (
+    BestOf,
     Interval,
     PairedDifference,
+    best_of,
     mean_interval,
     metric_interval,
     paired_difference,
 )
+from .store import AnswerLog, LoggedBackend
 from .synthesis.beam_synthesizer import BeamSynthesizer
 from .synthesis.budget import SynthesisBudget
 from .synthesis.enumeration import count_pipelines, enumerate_pipelines
@@ -99,6 +103,13 @@ __all__ = [
     "mean_interval",
     "paired_difference",
     "metric_interval",
+    "BestOf",
+    "best_of",
+    "AnswerLog",
+    "LoggedBackend",
+    "Decision",
+    "record_decision",
+    "load_decision",
     "enumerate_pipelines",
     "count_pipelines",
     "CapabilityRegistry",

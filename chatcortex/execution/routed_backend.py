@@ -14,7 +14,7 @@ component by name::
     )
 """
 
-from typing import Any, List, Mapping, Optional
+from typing import Any, Dict, List, Mapping, Optional
 
 from ..registry.capability_registry import CapabilityRegistry
 from ..registry.metadata import ComponentMetadata
@@ -58,6 +58,13 @@ class RoutedBackend:
             for metadata in registry.list_all()
             if metadata.name not in self._routes
         ]
+
+    def identity(self, metadata: ComponentMetadata) -> Dict[str, Any]:
+        """What the backend routed for ``metadata`` says it runs; empty
+        when that backend does not describe itself."""
+        backend = self._routes.get(metadata.name, self._default)
+        describe = getattr(backend, "identity", None)
+        return dict(describe(metadata) or {}) if callable(describe) else {}
 
     def __call__(self, metadata: ComponentMetadata, node_input: Any) -> ProbeResult:
         backend = self._routes.get(metadata.name, self._default)

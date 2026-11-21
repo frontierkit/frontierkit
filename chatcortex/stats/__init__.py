@@ -7,6 +7,7 @@ from .intervals import (
     metric_interval,
     paired_difference,
 )
+from .selection import BestOf, best_of, scores_by_pipeline
 
 __all__ = [
     "Interval",
@@ -14,4 +15,7 @@ __all__ = [
     "mean_interval",
     "metric_interval",
     "paired_difference",
+    "BestOf",
+    "best_of",
+    "scores_by_pipeline",
 ]

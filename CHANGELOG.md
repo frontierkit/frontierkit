@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ## [Unreleased]
 
 ### Added
+- **Answer log.** `LoggedBackend(backend, "answers.jsonl")` writes every step of a run to an append-only file: what was asked, what answered it (endpoint, model and request options, or a version you give your own function), when, and what came back, failures included. A step already answered is read back instead of being called again, so a repeated comparison makes no model calls and adding one pipeline only runs its new steps. `label` keeps separate samples of the same step, for example one per day
+- **Best of many, reported honestly.** `best_of({name: scores})` returns the winner with its score as measured, a corrected score that takes out the luck of having been picked from many, a range that stays valid after the pick, and the contenders it cannot be told apart from
+- **Decision record.** `record_decision(evaluations, eval_set, backend=backend).save("decision.json")` writes down which pipeline was chosen, what each step ran on, the range of every score, each pipeline compared with the chosen one, the failures by kind, and the steps all pipelines shared. `load_decision` reads it back
+- `OpenAIBackend.identity()` and `RoutedBackend.identity()` say what a component runs on, without the key or any header
+- **Daily benchmark** in `benchmarks/drift/`: asks the same questions of the same free models each day, and reports whether the first day's best setup still holds
 - **Failures say what went wrong.** A failed step is recorded with a kind: `rate_limited`, `timeout`, `unavailable`, `not_found` (a retired or misspelt model), `auth`, `empty_output`, `step_failed` or `error`. `PipelineEvaluation.errors` gives the kind for each example, `error_counts` totals them, and `quality_when_answered` is the mean score over the runs that finished, so an outage is no longer indistinguishable from a wrong answer. `ExecutionResult.error`, `ProbeResult.error` and the telemetry records carry the same kind; `StepResult(..., error=...)` lets a step name its own; `classify_error(exc)` maps any exception to a kind
 
 ### Changed

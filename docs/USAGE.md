@@ -172,6 +172,80 @@ Your own step can name a kind with
 `StepResult(None, success=False, error="timeout")`, and `classify_error(exc)`
 gives the kind of any exception.
 
+### Keep the answers, and do not pay twice
+
+Wrap any backend in a `LoggedBackend` and every step is written to a file. A
+step that was already answered is read from the file instead of being run:
+
+```python
+from chatcortex import LoggedBackend
+
+backend = LoggedBackend(my_backend, "answers.jsonl")
+evaluations = evaluate_pipelines(pipelines, AgentExecutor(backend=backend), eval_set)
+backend.calls, backend.reused     # steps run now, steps read from the file
+```
+
+Run it again and nothing is called. Add a pipeline and only its new steps run.
+
+- **What counts as the same step.** The same input to the same thing. For a
+  model call that is the endpoint, the model name and the request options, so
+  changing the model asks again. The API key is never written.
+- **Your own functions.** The library cannot see that you changed a function.
+  Give it a marker and change the marker when the function changes:
+  `LoggedBackend(backend, path, versions={"retriever": "bm25-v2"})`.
+- **Failures.** A failed call is written with its kind but never reused, so the
+  next run tries it again.
+- **Several samples.** `label="2026-11-21"` keeps that day's answers apart from
+  another day's; within one label nothing is asked twice.
+- **What can be logged.** Inputs and outputs that are JSON data: text, numbers,
+  lists and dicts. Tuples come back as lists. Anything else still runs, without
+  being logged, and a warning says so.
+
+The file is append-only, one JSON record per line, and it is the trace from a
+number in your results back to the call that produced it:
+`AnswerLog("answers.jsonl").records()`.
+
+### Reporting the best of many
+
+The top score among twenty pipelines is flattered: part of it is luck on these
+examples. `best_of` takes that luck out.
+
+```python
+from chatcortex import best_of
+
+result = best_of({e.components: e.scores for e in evaluations})
+result.winner        # the pipeline with the highest score
+result.measured      # 0.67: its score as measured
+result.corrected     # 0.50: what to expect on new examples
+result.interval      # a range that holds although the winner was picked after looking
+result.contenders    # pipelines the examples cannot tell apart from the winner
+```
+
+The corrected score comes from picking the winner on a random half of the
+examples and scoring it on the other half, many times over. It is slightly
+cautious. All pipelines must have been scored on the same examples.
+
+### Write the decision down
+
+`record_decision` saves the choice and the evidence for it as one JSON file:
+
+```python
+from chatcortex import record_decision
+
+decision = record_decision(evaluations, eval_set, backend=backend, note="for the report")
+decision.save("decision.json")
+
+decision.chosen       # components, what each step ran on, quality and its range, failures
+decision.compared     # every other pipeline and how it compares with the chosen one
+decision.contenders   # the ones too close to call
+decision.shared       # steps every pipeline ran identically
+```
+
+It picks the highest quality unless you pass `chosen=`. `decision.shared` is
+the part to quote when two approaches must be shown to have run on the same
+model with the same settings. The file also holds a fingerprint of the
+examples, the scorer's name and the corrected score of the best pipeline.
+
 ### Look at each example
 
 `quality` is a mean. Each evaluation also keeps what happened on every

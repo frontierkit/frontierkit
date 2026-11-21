@@ -30,7 +30,8 @@ the component that turns telemetry into updated metadata.
 
 import time
 from dataclasses import dataclass
-from typing import Any, Callable, Mapping, Optional
+from typing import Any, Callable, Dict, Mapping, Optional
+from urllib.parse import urlsplit
 
 from ..execution.errors import EMPTY_OUTPUT, classify_error
 from ..execution.executor import ProbeResult
@@ -98,6 +99,7 @@ class OpenAIBackend:
         request_options: Optional[Mapping[str, Any]] = None,
     ):
         self._model = model
+        self._base_url = base_url
         self._request_options = dict(request_options or {})
         for reserved in ("model", "messages"):
             if reserved in self._request_options:
@@ -132,6 +134,36 @@ class OpenAIBackend:
         if self.model_for is not None:
             return self.model_for(metadata)
         return self._model
+
+    def identity(self, metadata: ComponentMetadata) -> Dict[str, Any]:
+        """What a call for ``metadata`` runs on: endpoint, model and options.
+
+        Used to tell whether two calls are the same call (see
+        :class:`~chatcortex.store.LoggedBackend`) and to record what
+        produced a result. The endpoint is the address without any
+        credentials or query string; the key is never included, nor are
+        ``extra_headers`` or the ``timeout``.
+        """
+        address = self._base_url
+        if address is None:
+            address = getattr(self._client, "base_url", None)
+        endpoint = None
+        if address is not None:
+            parts = urlsplit(str(address))
+            host = parts.hostname or ""
+            if parts.port:
+                host = f"{host}:{parts.port}"
+            endpoint = f"{parts.scheme}://{host}{parts.path}".rstrip("/")
+        options = {
+            name: value
+            for name, value in self._request_options.items()
+            if name not in ("extra_headers", "timeout")
+        }
+        return {
+            "endpoint": endpoint,
+            "model": self._model_for_component(metadata),
+            "options": options,
+        }
 
     def __call__(
         self,
