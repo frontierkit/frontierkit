@@ -15,6 +15,9 @@ What is measured vs. declared:
   are model-specific and change over time. For a model without a price,
   or a response without usage, the component's declared ``cost_per_call``
   is recorded instead. A call that raises records zero cost.
+- **Error kind.** A failed call is recorded as rate limited, timed out,
+  unavailable, not found (a retired or misspelt model), refused for the
+  key, or empty, so an outage is not mistaken for a wrong answer.
 
 Other vendors: many model providers and local servers accept the same
 chat-completions request format. Point the backend at one with
@@ -29,6 +32,7 @@ import time
 from dataclasses import dataclass
 from typing import Any, Callable, Mapping, Optional
 
+from ..execution.errors import EMPTY_OUTPUT, classify_error
 from ..execution.executor import ProbeResult
 from ..registry.metadata import ComponentMetadata
 
@@ -159,6 +163,7 @@ class OpenAIBackend:
                 latency_ms=latency_ms,
                 cost=0.0,
                 output=f"openai call failed: {type(exc).__name__}: {exc}",
+                error=classify_error(exc),
             )
 
         latency_ms = (time.perf_counter() - started) * 1000.0
@@ -168,6 +173,7 @@ class OpenAIBackend:
             latency_ms=latency_ms,
             cost=self._cost(model, response, metadata),
             output=output,
+            error=None if output else EMPTY_OUTPUT,
         )
 
     def _cost(self, model: str, response: Any, metadata: ComponentMetadata) -> float:

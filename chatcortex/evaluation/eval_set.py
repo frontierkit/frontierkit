@@ -16,6 +16,12 @@ Quality is the mean score over all examples, counting a run that failed
 part-way as 0. Cost and latency are means of what the executor recorded,
 so they are measured values when the backend measures them.
 
+A failed run is not always a wrong answer: the service may have been
+rate limited or down. ``PipelineEvaluation.errors`` says what went wrong
+for each example, ``error_counts`` totals each kind, and
+``quality_when_answered`` is the mean score over the runs that finished,
+so a poor pipeline and a poor connection can be told apart.
+
 Some figures are not a mean of per-example scores: precision pooled over
 a whole corpus, or an F1 averaged over classes. Pass those as
 ``metrics``, a mapping from a name to ``metric(outputs, expecteds)``.
@@ -26,8 +32,9 @@ still ranked by ``quality``.
 
 import math
 from dataclasses import dataclass, field
-from typing import Any, Callable, Dict, List, Mapping, Sequence, Tuple
+from typing import Any, Callable, Dict, List, Mapping, Optional, Sequence, Tuple
 
+from ..execution.errors import STEP_FAILED
 from ..execution.executor import AgentExecutor
 from ..optimization.architecture_candidate import ArchitectureCandidate
 
@@ -151,6 +158,10 @@ class PipelineEvaluation:
             the same run with another scorer without running it again.
         metrics: The eval set's whole-set metrics by name; empty when
             the eval set defines none.
+        errors: For each example, in the same order, ``None`` when the
+            run finished and otherwise what stopped it: one of the kinds
+            in :mod:`chatcortex.execution.errors`, such as
+            ``"rate_limited"`` or ``"unavailable"``.
     """
 
     candidate: ArchitectureCandidate
@@ -164,11 +175,41 @@ class PipelineEvaluation:
     scores: Tuple[float, ...] = ()
     outputs: Tuple[Any, ...] = ()
     metrics: Dict[str, float] = field(default_factory=dict)
+    errors: Tuple[Optional[str], ...] = ()
+
+    @property
+    def error_counts(self) -> Dict[str, int]:
+        """How many runs stopped on each kind of error; empty when none did."""
+        counts: Dict[str, int] = {}
+        for kind in self.errors:
+            if kind is not None:
+                counts[kind] = counts.get(kind, 0) + 1
+        return counts
+
+    @property
+    def quality_when_answered(self) -> Optional[float]:
+        """Mean score over the runs that finished; ``None`` if none did.
+
+        ``quality`` counts every failed run as 0, so a pipeline that was
+        rate limited on half its examples looks half as good as it is.
+        This leaves those runs out. It covers fewer examples than
+        ``quality``, possibly the easier ones, so compare two pipelines
+        on it only when the same examples finished for both.
+        """
+        if not self.errors:
+            return self.quality
+        finished = [
+            score for score, kind in zip(self.scores, self.errors) if kind is None
+        ]
+        if not finished:
+            return None
+        return sum(finished) / len(finished)
 
     def to_dict(self) -> dict:
         """JSON-safe summary (without the candidate graph, raw traces,
         or per-example scores and outputs). ``metrics`` is included only
-        when the eval set defines some."""
+        when the eval set defines some, and ``errors`` (a count for each
+        kind) only when a run failed."""
         summary = {
             "components": list(self.components),
             "runs": self.runs,
@@ -179,6 +220,8 @@ class PipelineEvaluation:
         }
         if self.metrics:
             summary["metrics"] = dict(self.metrics)
+        if self.error_counts:
+            summary["errors"] = self.error_counts
         return summary
 
 
@@ -196,6 +239,7 @@ def evaluate_pipeline(
 
     scores: List[float] = []
     outputs: List[Any] = []
+    errors: List[Optional[str]] = []
     successes = 0
     total_cost = 0.0
     total_latency = 0.0
@@ -211,9 +255,11 @@ def evaluate_pipeline(
             successes += 1
             scores.append(eval_set.score(result.output, example.expected))
             outputs.append(result.output)
+            errors.append(None)
         else:
             scores.append(0.0)
             outputs.append(None)
+            errors.append(getattr(result, "error", None) or STEP_FAILED)
 
     runs = len(eval_set.examples)
     return PipelineEvaluation(
@@ -230,6 +276,7 @@ def evaluate_pipeline(
         scores=tuple(scores),
         outputs=tuple(outputs),
         metrics=eval_set.measure(outputs),
+        errors=tuple(errors),
     )
 
 

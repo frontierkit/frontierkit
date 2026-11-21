@@ -23,6 +23,9 @@ What is measured vs. declared:
   function that raises records zero cost, as a failed API call does; to
   report what a failure cost, return
   ``StepResult(output=None, success=False, cost=...)`` instead of raising.
+- **Error kind.** A function that raises is recorded with the kind of its
+  exception (see :mod:`chatcortex.execution.errors`); one that returns a
+  failed :class:`StepResult` is ``"step_failed"`` unless it names a kind.
 """
 
 import time
@@ -31,6 +34,7 @@ from typing import Any, Callable, List, Mapping, Optional
 
 from ..registry.capability_registry import CapabilityRegistry
 from ..registry.metadata import ComponentMetadata
+from .errors import STEP_FAILED, classify_error
 from .executor import BackendConfigurationError, ProbeResult
 
 
@@ -40,12 +44,15 @@ class StepResult:
 
     Returning a bare value is the same as ``StepResult(output=value)``.
     Use this to mark a step as failed without raising, or to report what
-    the call actually cost.
+    the call actually cost. ``error`` names what went wrong for a failed
+    step (one of the kinds in :mod:`chatcortex.execution.errors`, or
+    your own word); it is ignored when ``success`` is true.
     """
 
     output: Any
     success: bool = True
     cost: Optional[float] = None
+    error: Optional[str] = None
 
 
 class CallableBackend:
@@ -99,13 +106,16 @@ class CallableBackend:
                 latency_ms=(time.perf_counter() - started) * 1000.0,
                 cost=0.0,
                 output=f"{metadata.name} raised {type(exc).__name__}: {exc}",
+                error=classify_error(exc),
             )
         latency_ms = (time.perf_counter() - started) * 1000.0
 
         step = returned if isinstance(returned, StepResult) else StepResult(returned)
+        succeeded = bool(step.success)
         return ProbeResult(
-            success=bool(step.success),
+            success=succeeded,
             latency_ms=latency_ms,
             cost=metadata.cost_per_call if step.cost is None else step.cost,
             output=step.output,
+            error=None if succeeded else (step.error or STEP_FAILED),
         )

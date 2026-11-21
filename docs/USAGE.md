@@ -132,11 +132,45 @@ best.components, best.quality, best.latency_ms, best.cost, best.success_rate
   (the reference appears in the output) and `exact_match`. Each accepts one
   reference or a list. Or pass your own `scorer(output, expected)` returning a
   bool or a number from 0 to 1.
-- **Failures.** A run that fails part-way scores 0.
+- **Failures.** A run that fails part-way scores 0. See
+  [When a run fails](#when-a-run-fails) to tell an outage from a wrong answer.
 - **`quality_frontier`** keeps the pipelines not beaten on measured cost,
   latency and quality together.
 - **`enumerate_pipelines`** lists every pipeline the task allows;
   `count_pipelines` tells you how many that is before you spend any calls.
+
+### When a run fails
+
+A run can fail because the answer was wrong for the pipeline (a step rejected
+it) or because the service never answered. Each evaluation records which:
+
+```python
+best.errors                  # (None, "rate_limited", None, ...): one entry per example
+best.error_counts            # {"rate_limited": 2}
+best.quality                 # failed runs count as 0
+best.quality_when_answered   # mean over the runs that finished; None if none did
+```
+
+| Kind | Meaning |
+|---|---|
+| `rate_limited` | Too many calls; the service refused this one |
+| `timeout` | The call did not finish in time |
+| `unavailable` | The service could not be reached or returned a server error |
+| `not_found` | The model or address does not exist: retired, renamed or misspelt |
+| `auth` | The key is missing, wrong or not allowed to use the model |
+| `empty_output` | The model answered with nothing |
+| `step_failed` | A step returned `StepResult(success=False)` |
+| `error` | Any other exception, usually a bug in a step |
+
+The first five describe the service, not the pipeline. If a pipeline shows any
+of them, run it again before comparing its `quality` with others: a setup that
+was rate limited on half its examples looks half as good as it is.
+`quality_when_answered` shows what it scored on the rest, but it covers fewer
+examples, so treat it as a hint and not as the result.
+
+Your own step can name a kind with
+`StepResult(None, success=False, error="timeout")`, and `classify_error(exc)`
+gives the kind of any exception.
 
 ### Look at each example
 

@@ -1,4 +1,5 @@
 import random
+import time
 from dataclasses import dataclass
 from typing import Any, Literal, Optional, Protocol
 
@@ -6,6 +7,8 @@ from chatcortex.graph.agent_graph import AgentGraph
 from chatcortex.registry.capability_registry import CapabilityRegistry
 from chatcortex.registry.metadata import ComponentMetadata
 from chatcortex.telemetry.logger import TelemetryLogger
+
+from .errors import STEP_FAILED, classify_error
 
 ExecutionMode = Literal["deterministic", "probabilistic"]
 
@@ -32,6 +35,9 @@ class ExecutionProtocol(Protocol):
         latency_ms: float
         cost: float
         output: Any
+        error: Optional[str] = None
+        """For a failed call, what went wrong: one of the kinds in
+        :mod:`chatcortex.execution.errors`. ``None`` on success."""
 
     def __call__(
         self,
@@ -66,6 +72,9 @@ class ExecutionResult:
             ``None`` if the chain stopped on a failure, and always
             ``None`` for the simulator, which produces no outputs.
         success: ``True`` when every step succeeded.
+        error: ``None`` when every step succeeded; otherwise what went
+            wrong in the step that stopped the chain, one of the kinds
+            in :mod:`chatcortex.execution.errors`.
     """
 
     def __init__(
@@ -73,10 +82,12 @@ class ExecutionResult:
         telemetry: TelemetryLogger,
         output: Any = None,
         success: bool = True,
+        error: Optional[str] = None,
     ):
         self.telemetry = telemetry
         self.output = output
         self.success = success
+        self.error = error
 
     def summary(self):
         return self.telemetry.summary()
@@ -95,8 +106,9 @@ class AgentExecutor:
     ProbeResult (never the metadata estimates) are recorded in the
     telemetry; ``mode`` is ignored because the backend decides success.
     The chain stops on the first failure, exactly like the simulator.
-    A backend exception is recorded as a failed probe (zero cost) and
-    also stops the chain, so partial telemetry survives the error.
+    A backend exception is recorded as a failed probe (zero cost, the
+    time the call took, and the kind of error) and also stops the chain,
+    so partial telemetry survives the error.
 
     Hidden ground truth: by default the simulator draws outcomes from the
     metadata carried by the graph, i.e. from the *declared* values, so a
@@ -141,11 +153,14 @@ class AgentExecutor:
 
         node_input: Any = task_input
         succeeded = True
+        failure: Optional[str] = None
         for node_id in graph.get_execution_order():
             metadata = graph.get_metadata(node_id)
-            latency_ms, cost, success, output = self._evaluate_node(
+            latency_ms, cost, success, output, error = self._evaluate_node(
                 metadata, node_input
             )
+            if not success and error is None:
+                error = STEP_FAILED
 
             # Shared semantics for both paths: record the probe, then
             # stop the chain on the first failure.
@@ -154,10 +169,12 @@ class AgentExecutor:
                 latency_ms=latency_ms,
                 cost=cost,
                 success=success,
+                error=None if success else error,
             )
 
             if not success:
                 succeeded = False
+                failure = error
                 break # Stop pipeline on failure
             node_input = output
 
@@ -165,17 +182,24 @@ class AgentExecutor:
             telemetry=telemetry,
             output=node_input if succeeded and self.backend is not None else None,
             success=succeeded,
+            error=failure,
         )
 
     def _evaluate_node(self, metadata: ComponentMetadata, node_input: Any):
         """Run one node through the backend (if set) or the simulator.
 
-        Returns ``(latency_ms, cost, success, output)``; the shared
+        Returns ``(latency_ms, cost, success, output, error)``; the shared
         log-then-stop-on-failure tail lives in ``execute``.
         """
         if self.backend is not None:
             probe = self._invoke_backend(metadata, node_input)
-            return probe.latency_ms, probe.cost, probe.success, probe.output
+            return (
+                probe.latency_ms,
+                probe.cost,
+                probe.success,
+                probe.output,
+                getattr(probe, "error", None),
+            )
 
         # What the component really does: the hidden truth when one is
         # supplied, otherwise the declared metadata itself.
@@ -195,7 +219,7 @@ class AgentExecutor:
         else:
             raise ValueError("Invalid execution mode")
 
-        return simulated_latency, actual.cost_per_call, success, None
+        return simulated_latency, actual.cost_per_call, success, None, None
 
     def _true_metadata(self, declared: ComponentMetadata) -> ComponentMetadata:
         """The metadata the simulator samples from for one component."""
@@ -210,6 +234,7 @@ class AgentExecutor:
         self, metadata: ComponentMetadata, node_input: Any
     ) -> ProbeResult:
         """Call the backend once, turning exceptions into failed probes."""
+        started = time.perf_counter()
         try:
             return self.backend(metadata, node_input)
         except BackendConfigurationError:
@@ -217,7 +242,8 @@ class AgentExecutor:
         except Exception as exc:  # backend failures are execution results
             return ProbeResult(
                 success=False,
-                latency_ms=0.0,
+                latency_ms=(time.perf_counter() - started) * 1000.0,
                 cost=0.0,
                 output=f"backend raised {type(exc).__name__}: {exc}",
+                error=classify_error(exc),
             )

@@ -3,6 +3,14 @@
 All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased]
+
+### Added
+- **Failures say what went wrong.** A failed step is recorded with a kind: `rate_limited`, `timeout`, `unavailable`, `not_found` (a retired or misspelt model), `auth`, `empty_output`, `step_failed` or `error`. `PipelineEvaluation.errors` gives the kind for each example, `error_counts` totals them, and `quality_when_answered` is the mean score over the runs that finished, so an outage is no longer indistinguishable from a wrong answer. `ExecutionResult.error`, `ProbeResult.error` and the telemetry records carry the same kind; `StepResult(..., error=...)` lets a step name its own; `classify_error(exc)` maps any exception to a kind
+
+### Changed
+- When a backend raises, the executor records how long the call took. It recorded 0 ms before, which made a setup that timed out look fast
+
 ## [0.11.0] - 2026-11-21
 
 ### Added
