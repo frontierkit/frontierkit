@@ -1,4 +1,4 @@
-from typing import Dict, List
+from typing import Dict, List, Optional
 
 
 class TelemetryLogger:
@@ -14,14 +14,16 @@ class TelemetryLogger:
         component_name: str,
         latency_ms: float,
         cost: float,
-        success: bool
+        success: bool,
+        error: Optional[str] = None,
     ) -> None:
         self.records.append(
             {
                 "component": component_name,
                 "latency_ms": latency_ms,
                 "cost": cost,
-                "success": success
+                "success": success,
+                "error": error,
             }
         )
 

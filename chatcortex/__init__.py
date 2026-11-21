@@ -34,6 +34,7 @@ from .evaluation.scorers import (
     triple_recall,
 )
 from .execution.callable_backend import CallableBackend, StepResult
+from .execution.errors import classify_error
 from .execution.executor import AgentExecutor, BackendConfigurationError
 from .execution.routed_backend import RoutedBackend
 from .graph.agent_graph import AgentGraph
@@ -77,6 +78,7 @@ __all__ = [
     "CallableBackend",
     "RoutedBackend",
     "StepResult",
+    "classify_error",
     "EvalSet",
     "Example",
     "PipelineEvaluation",

@@ -249,6 +249,9 @@ def main(argv=None):
         (evaluation,) = evaluate_pipelines([candidate], executor, eval_set)
         evaluations.append(evaluation)
         print(f"quality {evaluation.quality:.2f}, {evaluation.latency_ms:6.0f} ms per answer")
+        if evaluation.error_counts:
+            kinds = ", ".join(f"{n} {kind}" for kind, n in evaluation.error_counts.items())
+            print(f"      {kinds}: these count as 0, so run this setup again before trusting it")
 
     frontier = {e.components for e in quality_frontier(evaluations)}
     ranked = sorted(evaluations, key=lambda e: (-e.quality, e.latency_ms))
