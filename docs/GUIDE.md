@@ -84,19 +84,34 @@ Each row is one setup:
 | Column | Meaning |
 |---|---|
 | quality | mean score over your questions, from 0 to 1 |
+| likely range | where the true quality plausibly lies, given how few questions were asked |
 | answered | share of questions that got any answer |
 | latency | mean time per answer |
 | `*` | not beaten on both quality and speed by any other setup |
 
-Below the table the script names the setup with the best quality and, if one
-exists, a faster setup within 0.05 of it.
+Below the table the script says one of two things:
+
+- **Best quality**, when one setup is ahead of every other by more than chance
+  could explain.
+- **Too close to call**, when your questions cannot tell the top setup apart
+  from others. It lists those setups and the gap to each with its likely
+  range, and names a faster one if it scored within 0.05 of the top. The
+  questions do not settle the order of these setups; add questions before
+  relying on it.
+
+If the top score is flattered by having been picked from many setups, the
+script also says what to expect on new questions.
+
+The ranges are honest about small samples, so with a handful of questions they
+are wide: at 12 questions a range spans about 0.5. Around 30 questions separate
+large gaps (0.4 and more); gaps of 0.1 need a few hundred. A failed call counts
+as 0, which lowers a setup's quality and widens its range, so run a setup again
+if it shows failures.
 
 The default score is word overlap with your reference (`--scorer f1`). Use
 `--scorer contains` when answers may be long but must mention the reference,
 or `--scorer exact` for labels and numbers.
 
-With few questions, differences of a few hundredths are noise. Add questions
-before relying on a close call.
 
 ## 6. Compare your own options
 
