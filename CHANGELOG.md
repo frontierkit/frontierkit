@@ -3,7 +3,7 @@
 All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
-## [Unreleased]
+## [0.11.0] - 2026-11-21
 
 ### Added
 - `PipelineEvaluation.scores` and `PipelineEvaluation.outputs` keep the score and the returned output of every example, in eval-set order (0 and `None` for a failed run), so a run can be inspected example by example or graded again with another scorer without new calls. `to_dict()` is unchanged
