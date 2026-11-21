@@ -40,11 +40,14 @@ from chatcortex import (
     Example,
     RoutedBackend,
     TaskSpecification,
+    best_of,
     contains_answer,
     count_pipelines,
     enumerate_pipelines,
     evaluate_pipelines,
     exact_match,
+    mean_interval,
+    paired_difference,
     quality_frontier,
     token_f1,
 )
@@ -203,6 +206,72 @@ def model_backends(questions):
 # --- the comparison -------------------------------------------------------
 
 
+def _setup(evaluation):
+    prompt, model = evaluation.components
+    return f"{model} with {prompt}"
+
+
+def print_results(evaluations, scorer_name, out=print):
+    """Print the results table and what the questions do and do not show.
+
+    Every quality comes with the range it plausibly lies in, and a setup
+    is only named the best when the questions can tell it apart from the
+    others; otherwise the output says which ones are too close to call.
+    """
+    questions = len(evaluations[0].scores)
+    frontier = {e.components for e in quality_frontier(evaluations)}
+    ranked = sorted(evaluations, key=lambda e: (-e.quality, e.latency_ms))
+    out(f"\nResults ({scorer_name} score; * = not beaten on both quality and speed)")
+    out(f"  {'model':22s} {'prompt':24s} quality  likely range  answered  latency")
+    for e in ranked:
+        prompt, model = e.components
+        mark = "*" if e.components in frontier else " "
+        likely = mean_interval(e.scores)
+        out(f"{mark} {model:22s} {prompt:24s} {e.quality:7.2f}  "
+            f"{likely.low:4.2f} to {likely.high:4.2f}  {e.success_rate:7.0%}  "
+            f"{e.latency_ms:6.0f} ms")
+
+    by_components = {e.components: e for e in ranked}
+    result = best_of({e.components: e.scores for e in ranked})
+    best = by_components[result.winner]
+    close = [by_components[name] for name in result.contenders]
+
+    out("")
+    if not close:
+        out(f"Best quality: {_setup(best)} ({best.quality:.2f}, {best.latency_ms:.0f} ms).")
+        if len(ranked) > 1:
+            out(f"It is ahead of every other setup by more than {questions} questions "
+                "could produce by chance.")
+    else:
+        out(f"Too close to call: {_setup(best)} scored highest ({best.quality:.2f}), but "
+            f"{questions} questions cannot tell it apart from {len(close)} other "
+            f"setup{'s' if len(close) != 1 else ''}:")
+        # The same strictness best_of used: the allowed error is shared
+        # between all the comparisons with the top setup.
+        strict = 1 - 0.05 / (result.candidates - 1)
+        for other in close[:5]:
+            gap = paired_difference(best.scores, other.scores, confidence=strict)
+            out(f"    {_setup(other)} ({other.quality:.2f}); the gap is {gap.estimate:+.2f}, "
+                f"likely between {gap.low:+.2f} and {gap.high:+.2f}")
+        if len(close) > 5:
+            out(f"    and {len(close) - 5} more")
+        near = [e for e in close if e.quality >= best.quality - 0.05]
+        fastest = min([best] + near, key=lambda e: e.latency_ms)
+        if fastest is not best:
+            out(f"Faster and within 0.05 of the top score: {_setup(fastest)} "
+                f"({fastest.quality:.2f}, {fastest.latency_ms:.0f} ms).")
+
+    if result.candidates > 1 and result.measured - result.corrected >= 0.01:
+        out(f"The top score is flattered by being picked from {result.candidates} setups; "
+            f"on new questions expect about {result.corrected:.2f}.")
+    if any(e.error_counts for e in [best] + close):
+        out("Some of these setups had failed calls, which count as 0 and widen the range; "
+            "run them again before deciding.")
+    out(f"\nThe ranges are wide because there are {questions} questions. More questions "
+        "narrow them: about 30 separate large gaps, small gaps need a few hundred.")
+    return result
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     parser.add_argument("--questions", default=str(QUESTIONS_FILE), help="CSV file")
@@ -253,26 +322,7 @@ def main(argv=None):
             kinds = ", ".join(f"{n} {kind}" for kind, n in evaluation.error_counts.items())
             print(f"      {kinds}: these count as 0, so run this setup again before trusting it")
 
-    frontier = {e.components for e in quality_frontier(evaluations)}
-    ranked = sorted(evaluations, key=lambda e: (-e.quality, e.latency_ms))
-    print(f"\nResults ({args.scorer} score; * = not beaten on both quality and speed)")
-    print(f"  {'model':22s} {'prompt':24s} quality  answered  latency")
-    for e in ranked:
-        prompt, model = e.components
-        mark = "*" if e.components in frontier else " "
-        print(f"{mark} {model:22s} {prompt:24s} {e.quality:7.2f}  {e.success_rate:7.0%}  "
-              f"{e.latency_ms:6.0f} ms")
-
-    best = ranked[0]
-    good_enough = [e for e in ranked if e.quality >= best.quality - 0.05]
-    fastest = min(good_enough, key=lambda e: e.latency_ms)
-    print(f"\nBest quality:  {best.components[1]} with {best.components[0]} "
-          f"({best.quality:.2f}, {best.latency_ms:.0f} ms)")
-    if fastest is not best:
-        print(f"Faster option: {fastest.components[1]} with {fastest.components[0]} "
-              f"({fastest.quality:.2f}, {fastest.latency_ms:.0f} ms), within 0.05 of the best")
-    print("\nWith only a few questions, small differences are noise; add questions "
-          "before relying on a close call.")
+    print_results(evaluations, args.scorer)
     return 0
 
 
