@@ -1,8 +1,9 @@
 """
 FrontierKit quickstart.
 
-Synthesizes Pareto-optimal agent architectures for a 3-stage task
-using the prebuilt demo registry. Runs in under a second:
+Searches a three-step task for the pipelines nothing beats on declared
+cost, latency and reliability, using the prebuilt demo registry. Nothing
+is run or scored here; examples/scored_pipeline.py does that. Runs in under a second:
 
     python examples/quickstart.py
 """

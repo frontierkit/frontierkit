@@ -1,116 +1,104 @@
-# FrontierKit Benchmark Experiments
+# Benchmarks
 
-This document summarizes the experimental evaluation of the FrontierKit synthesis framework.
+Three sets of measurements ship with the project. The first two run on free
+models and measure answers. The third measures the search strategies alone.
 
-The experiments evaluate how different synthesis algorithms recover Pareto-optimal architectures under bounded evaluation budgets.
+## Which setup answers best
 
----
+[`benchmarks/qa_frontier`](https://github.com/frontierkit/frontierkit/tree/main/benchmarks/qa_frontier)
+compares pipelines of three steps on reading-comprehension questions from
+SQuAD: how much reading material the model gets (none, the best-matching
+paragraph, or the best three), which free model answers, and whether the reply
+is kept whole or cut to its first clause. Answers are scored with the SQuAD
+token F1 against the reference answers.
 
-# Experimental Setup
+Thirty questions and two free models on SAIA, with the reply kept whole:
 
-Architecture search space:
+| Setup | Quality | Likely range | Time per answer | Against the top row |
+|---|---|---|---|---|
+| Gemma 4 31B, three passages | **0.95** | 0.74 to 1.00 | 362 ms | |
+| Gemma 4 31B, one passage | 0.90 | 0.69 to 1.00 | 285 ms | too close to call |
+| Llama 3.1 8B, three passages | 0.34 | 0.12 to 0.48 | 247 ms | worse |
+| Llama 3.1 8B, one passage | 0.30 | 0.11 to 0.50 | 259 ms | worse |
+| Gemma 4 31B, no passages | 0.14 | 0.01 to 0.35 | 257 ms | worse |
+| Llama 3.1 8B, no passages | 0.01 | 0.00 to 0.22 | 225 ms | worse |
 
-5-stage agent pipeline
+The first two setups cannot be told apart on thirty questions, and both clearly
+beat the rest. The ranges and verdicts come from `mean_interval` and
+`paired_difference`; see [How sure is the result](USAGE.md#how-sure-is-the-result).
 
-Capabilities:
+In an earlier run on twelve SQuAD questions, the same Gemma model scored 0.95
+on two vendors but answered in 230 ms on one and 14,516 ms on the other. Without reading
+material it scored 0.10, and a smaller model that was no faster scored 0.33.
 
-* retrieval
-* generation
-* verification
-* refinement
-* postprocessing
+Run it yourself with any of the free keys. Every reply is kept, so collection
+can stop and resume around rate limits, and scoring runs offline:
 
-Total architecture space grows combinatorially with available components.
+```bash
+python -m benchmarks.qa_frontier.collect --budget 100
+python -m benchmarks.qa_frontier.report
+python -m benchmarks.qa_frontier.replay
+```
 
-In stress tests, the true Pareto frontier contained up to **95 architectures**.
+The last command replays the kept replies to compare ways of finding the best
+pipelines within a budget of calls: trying every pipeline in order, trying them
+at random, and `run_closed_loop`. The closed loop currently finds the best
+pipeline in about as many calls as random picking.
 
----
+## Does the best setup stay the best
 
-# Evaluation Metrics
+[`benchmarks/drift`](https://github.com/frontierkit/frontierkit/tree/main/benchmarks/drift)
+asks the same thirty questions of the same free models every day and reports
+whether the setup chosen on the first day still holds. Hosted models change
+without notice, and this measures how often that changes the choice.
 
-The framework evaluates synthesis algorithms using several multi-objective metrics.
+```bash
+python -m benchmarks.drift.collect
+python -m benchmarks.drift.report
+```
 
-Coverage
-Fraction of the true Pareto frontier recovered by the algorithm.
+For each day the report prints the best setup, its quality as measured and
+corrected for having been picked from many, how many setups are too close to
+it to call, and the failed calls per model. It needs a sample a day over
+several weeks, so no results are shown here.
 
-Hypervolume Loss
-Difference between the hypervolume of the true frontier and the approximated frontier.
+## Search on declared numbers
 
-Average Regret
-Average performance gap across objectives:
+The rest of this page is about a different question: how well the search
+strategies recover the best pipelines from declared cost, latency and
+reliability alone, before anything is run. Nothing here measures answers.
 
-* cost
-* latency
-* reliability
+### Setup
 
----
+The search space is a five-step pipeline (retrieval, generation, verification,
+refinement, postprocessing) with four components per step, so 4**5 = 1,024
+pipelines. Its exact frontier holds 27 of them.
 
-# Budget Experiments
+Strategies compared: `HeuristicSynthesizer` (greedy), `RandomSynthesizer`,
+`BeamSynthesizer` (a beam on one weighted score),
+`ParetoPartialBeamSynthesizer` and `ProgressiveParetoBeamSynthesizer`.
 
-Architecture evaluations are constrained by a synthesis budget.
+Each strategy may evaluate a limited number of candidates: 20, 40, 80, 120 or
+180. Beam searches were also run at widths 3, 5, 7, 10 and 15.
 
-Budgets tested:
+Two figures are reported:
 
-20
-40
-80
-120
-180
+- **Coverage**: the share of the exact frontier the strategy recovered.
+- **Hypervolume loss**: how much of the space covered by the exact frontier the
+  recovered one misses. Zero is a full recovery.
 
-Higher budgets allow more candidate architectures to be evaluated.
+### Measured tables
 
----
-
-# Beam Width Experiments
-
-Beam search algorithms were evaluated with different beam widths.
-
-Widths tested:
-
-3
-5
-7
-10
-15
-
-Beam width controls the diversity of partial architectures retained during search.
-
----
-
-# Algorithm Comparison
-
-Algorithms evaluated:
-
-HeuristicSynthesizer
-RandomSynthesizer
-BeamSynthesizer
-ParetoPartialBeamSynthesizer
-ProgressiveParetoBeamSynthesizer
-
----
-
-# Reproducibility
-
-The tables below are **generated, not hand-written**: they were measured by
-`scripts/regenerate_benchmarks.py` on frontierkit 0.6.0
-(Python 3.10.4), using the 5-stage demo registry (4 tradeoff
-variants per capability, so 4**5 = 1024 candidate chains) whose exact Pareto
-frontier contains 27 architectures. The earlier
-"up to **95 architectures**" figures above come from larger historical stress
-test registries, not this demo setup.
-
-Verify any future claim in this document by re-running:
+The tables below are generated, not hand-written. They were measured by
+`scripts/regenerate_benchmarks.py` on version 0.6.0 (Python 3.10.4). Random
+baselines use seeds 42 to 46; hypervolume estimates use 200,000 Monte Carlo
+samples with seed 42. Re-run them with:
 
 ```bash
 python scripts/regenerate_benchmarks.py
 ```
 
-which rewrites `docs/benchmark_results.json` (all coverage, hypervolume-loss,
-and regret rows) and prints the tables below. Random baselines use seeds
-42-46; hypervolume estimates use the library defaults (200,000 Monte Carlo
-samples, seed 42).
-
-### Coverage by evaluation budget (beam width 7, 5-stage demo registry)
+#### Coverage by evaluation budget (beam width 7, 5-stage demo registry)
 
 Coverage of the exact Pareto frontier under a bounded evaluation budget; `Random` cells are mean +/- std over 5 seeds (42-46).
 
@@ -122,7 +110,7 @@ Coverage of the exact Pareto frontier under a bounded evaluation budget; `Random
 | ParetoPartialBeam | 0.33 | 0.33 | 0.33 | 0.33 | 0.33 |
 | ProgressiveParetoBeam | 0.74 | 1.00 | 1.00 | 1.00 | 1.00 |
 
-### Mean hypervolume loss by evaluation budget (beam width 7)
+#### Mean hypervolume loss by evaluation budget (beam width 7)
 
 Monte Carlo hypervolume loss against the exact frontier (200000 samples, seed 42); `Random` cells are means over 5 seeds.
 
@@ -134,7 +122,7 @@ Monte Carlo hypervolume loss against the exact frontier (200000 samples, seed 42
 | ParetoPartialBeam | 6.9060 | 6.9060 | 6.9060 | 6.9060 | 6.9060 |
 | ProgressiveParetoBeam | 38.2215 | 0.0000 | 0.0000 | 0.0000 | 0.0000 |
 
-### Coverage by beam width (evaluation budget 120)
+#### Coverage by beam width (evaluation budget 120)
 
 Coverage of the exact Pareto frontier against a fixed evaluation budget.
 
@@ -144,7 +132,7 @@ Coverage of the exact Pareto frontier against a fixed evaluation budget.
 | ParetoPartialBeam | 0.22 | 0.26 | 0.33 | 0.63 | 0.85 |
 | ProgressiveParetoBeam | 0.85 | 1.00 | 1.00 | 1.00 | 1.00 |
 
-### Mean hypervolume loss by beam width (evaluation budget 120)
+#### Mean hypervolume loss by beam width (evaluation budget 120)
 
 Monte Carlo hypervolume loss against the exact frontier (200000 samples, seed 42).
 
@@ -154,43 +142,17 @@ Monte Carlo hypervolume loss against the exact frontier (200000 samples, seed 42
 | ParetoPartialBeam | 23.2560 | 13.2660 | 6.9060 | 0.1005 | 0.0135 |
 | ProgressiveParetoBeam | 1.9695 | 0.0000 | 0.0000 | 0.0000 | 0.0000 |
 
-# Key Results
+### What the tables show
 
-Scalar beam search suffers from **early-stage pruning bias**.
+- A beam on one weighted score prunes too early. It drops partial pipelines
+  that would have ended on the frontier, and no later step can bring them back.
+- Keeping the partial pipelines nothing beats at each step recovers more, and
+  always keeping the cheapest, fastest and most reliable ones protects the
+  corners of the frontier.
+- Widening the beam as the pipeline grows recovers the whole frontier from a
+  budget of 40 candidates at width 7, and from width 5 at a budget of 120. The
+  plain beam stays at 19% in both cases.
+- Random search improves slowly with budget and reaches 39% at 180 candidates.
 
-This bias causes irreversible loss of Pareto-optimal architectures.
-
-Stage truncation is Pareto-aware: intermediate stages keep only
-non-dominated partial architectures, always retain the cost, latency,
-and reliability extremes, and fill remaining slots by crowding distance
-in objective space. On the demo 3-stage task the reliability corner of
-the exact frontier `(0.009, 540 ms, 0.7787)` — previously lost by both
-Pareto-aware beams at nearly every beam width — is recovered from width
-4 up, with full 6/6 frontier recovery from width 6.
-
-
-Pareto-aware partial beam search improves coverage by preserving non-dominated partial architectures.
-
-Progressive Pareto Beam Widening further improves recovery by gradually increasing search diversity with depth.
-
-Under moderate budgets, Progressive Pareto Beam achieved **near-complete recovery of the true Pareto frontier** in dense architecture spaces.
-
----
-
-# Observed Trends
-
-Key empirical findings:
-
-* Increasing beam width improves Pareto recovery but increases computational cost.
-* Random search approximates hypervolume but converges slowly.
-* Progressive beam widening balances exploration and exploitation.
-
----
-
-# Conclusion
-
-The experiments demonstrate that **depth-aware beam widening significantly improves multi-objective architecture search performance**.
-
-This makes Progressive Pareto Beam a promising approach for scalable synthesis of AI agent architectures.
-
----
+These results concern declared numbers. Which pipeline gives the best answers
+has to be measured, which is what the first two benchmarks do.

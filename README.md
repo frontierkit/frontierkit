@@ -157,7 +157,7 @@ minor versions.
 - [How it works](https://frontierkit.github.io/frontierkit/ARCHITECTURE/)
 - [Benchmarks](https://frontierkit.github.io/frontierkit/BENCHMARKS/)
 - [Examples](https://github.com/frontierkit/frontierkit/tree/main/examples)
-- [Contributing](https://github.com/frontierkit/frontierkit/blob/main/CONTRIBUTING.md) and [Changelog](https://github.com/frontierkit/frontierkit/blob/main/CHANGELOG.md)
+- [Contributing](https://github.com/frontierkit/frontierkit/blob/main/CONTRIBUTING.md) and [Changelog](https://frontierkit.github.io/frontierkit/CHANGELOG/)
 
 ## Coming from ChatCortex
 

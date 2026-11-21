@@ -1,5 +1,5 @@
 cff-version: 1.2.0
-title: "FrontierKit: Multi-Objective Architecture Synthesis for AI Agents"
+title: "FrontierKit: comparing models, prompts and pipelines on your own questions, with margins of error"
 message: "If you use this project in your research, please cite it."
 authors:
   - family-names: Saraswat

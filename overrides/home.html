@@ -1,390 +1,433 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>{{ config.site_name }}: find out which model and prompt answer your questions best</title>
+<title>{{ config.site_name }}: find the setup that answers your questions best</title>
 <meta name="description" content="{{ config.site_description }}">
 <link rel="canonical" href="{{ config.site_url }}">
 <link rel="icon" href="{{ 'assets/favicon.svg' | url }}" type="image/svg+xml">
+<script>
+// Use the theme the visitor chose on any page of the site. The docs pages
+// keep that choice in local storage; read the same entry before first paint.
+(function () {
+  var scope = new URL("{{ '.' | url }}", location).pathname;
+  var theme = "dark";
+  try {
+    var saved = JSON.parse(localStorage.getItem(scope + ".__palette"));
+    if (saved && saved.color && saved.color.scheme === "default") { theme = "light"; }
+  } catch (e) {}
+  document.documentElement.setAttribute("data-theme", theme);
+  window.__fkScope = scope;
+})();
+</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@500;600;700&family=JetBrains+Mono:wght@400;500&display=swap">
 <style>
 :root {
-  --bg: #090C0B; --fg: #EEF2EF; --soft: #C9D2CC; --muted: #B4BEB8; --label: #A9B4AD; --dim: #7E8983;
-  --accent: #7CF2A8; --on-accent: #06140C; --line: rgba(255,255,255,0.10); --surface: rgba(255,255,255,0.035);
-  --code-bg: #050706;
   --display: 'Space Grotesk', 'Segoe UI', system-ui, sans-serif;
   --body: Inter, 'Segoe UI', system-ui, sans-serif;
   --mono: 'JetBrains Mono', ui-monospace, Consolas, monospace;
+}
+:root[data-theme="dark"] {
   color-scheme: dark;
+  --bg: #090c0b; --surface: #111614; --raise: #18201c; --line: rgba(255,255,255,0.11);
+  --fg: #eef2ef; --soft: #b4beb8; --muted: #8a958f;
+  --accent: #7cf2a8; --accent-soft: rgba(124,242,168,0.14);
+  --btn-bg: #7cf2a8; --btn-fg: #06110b; --dot: #56615c;
+  --code-bg: #050706; --code-fg: #c9d2cc;
 }
-* { box-sizing: border-box; }
-html { scroll-behavior: smooth; }
-body { margin: 0; background: var(--bg); color: var(--fg); font-family: var(--body); font-size: 16px; line-height: 1.55; -webkit-font-smoothing: antialiased; }
-a { color: var(--fg); }
-a:focus-visible, .btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+:root[data-theme="light"] {
+  color-scheme: light;
+  --bg: #f6f8f5; --surface: #ffffff; --raise: #edf1ec; --line: rgba(9,12,11,0.14);
+  --fg: #0b1210; --soft: #3f4a45; --muted: #5c6862;
+  --accent: #0b7a43; --accent-soft: rgba(11,122,67,0.11);
+  --btn-bg: #0b1210; --btn-fg: #f6f8f5; --dot: #a3aea8;
+  --code-bg: #0b1210; --code-fg: #dfe7e2;
+}
+*, *::before, *::after { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--fg); font-family: var(--body); font-size: 16px; line-height: 1.55; -webkit-font-smoothing: antialiased; transition: background-color 0.35s ease, color 0.35s ease; }
+a { color: inherit; }
+a:focus-visible, button:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
 h1, h2, h3, p { margin: 0; }
-.wrap { max-width: 1200px; margin: 0 auto; padding-left: max(24px, env(safe-area-inset-left, 0px)); padding-right: max(24px, env(safe-area-inset-right, 0px)); }
-.section { padding-top: 104px; display: flex; flex-direction: column; gap: 44px; }
-.display { font-family: var(--display); font-weight: 700; letter-spacing: -0.02em; text-wrap: balance; }
-h2.display { font-size: clamp(30px, 3.6vw, 44px); line-height: 1.08; }
-.lead { color: var(--muted); font-size: 17px; }
-.eyebrow { display: flex; align-items: center; gap: 10px; font-size: 13px; font-weight: 600; letter-spacing: 0.10em; text-transform: uppercase; color: var(--label); }
-.eyebrow::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--accent); }
-.motion .eyebrow::before { animation: pulse 2.4s ease-in-out infinite; }
-.head { display: flex; flex-direction: column; gap: 14px; max-width: 720px; }
+.wrap { max-width: 1180px; margin: 0 auto; padding: 0 24px; }
+.display { font-family: var(--display); font-weight: 700; letter-spacing: -0.02em; line-height: 1.1; text-wrap: balance; }
+.ico { fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
 
-.btn { display: inline-flex; align-items: center; gap: 10px; text-decoration: none; font-weight: 600; padding: 15px 26px; border-radius: 999px; transition: transform .2s ease, filter .2s ease, border-color .2s ease; }
-.btn:hover { transform: translateY(-2px); filter: brightness(1.08); }
-.btn-primary { background: var(--accent); color: var(--on-accent); }
-.btn-ghost { border: 1px solid rgba(255,255,255,0.22); color: var(--fg); }
-.btn-ghost:hover { border-color: rgba(255,255,255,0.5); }
-.btn-dark { background: var(--on-accent); color: var(--fg); }
-.btn svg { flex: none; }
+/* The mark: three setups nothing beats, joined by the frontier, and one beaten setup below */
+.mark { color: var(--accent); flex: none; }
+.mark circle { fill: currentColor; }
+.mark .mark-line { fill: none; stroke: currentColor; stroke-width: 5; stroke-linecap: round; stroke-linejoin: round; }
+.mark .mark-low { opacity: 0.38; }
+.mark .mark-halo { transform-box: fill-box; transform-origin: center; animation: halo 3.2s ease-out infinite; }
 
-.nav { margin-top: 20px; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 24px; padding: 10px 12px 10px 22px; border: 1px solid var(--line); border-radius: 999px; background: rgba(255,255,255,0.03); }
-.brand { display: flex; align-items: center; gap: 10px; text-decoration: none; font-family: var(--display); font-weight: 700; font-size: 19px; letter-spacing: -0.01em; min-height: 44px; }
-.brand::before { content: ""; width: 12px; height: 12px; border-radius: 3px; background: var(--accent); transform: rotate(45deg); }
-.nav-links { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 6px; font-size: 15px; font-weight: 500; }
-.nav-links a { text-decoration: none; padding: 12px 14px; color: var(--soft); border-radius: 999px; transition: color .2s ease, background .2s ease; }
-.nav-links a:hover { color: #fff; background: rgba(255,255,255,0.06); }
-.nav .btn { padding: 12px 22px; font-size: 15px; }
+/* Top bar */
+.nav { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px 16px; padding: 18px 0; }
+.brand { display: flex; align-items: center; gap: 10px; min-height: 44px; text-decoration: none; font-family: var(--display); font-weight: 700; font-size: 21px; letter-spacing: -0.01em; }
+.brand span span { font-weight: 500; color: var(--soft); }
+.nav-links { display: flex; align-items: center; flex-wrap: wrap; gap: 4px; }
+.nav-link { display: flex; align-items: center; min-height: 44px; padding: 0 12px; font-size: 15px; color: var(--soft); text-decoration: none; }
+.nav-link:hover { color: var(--fg); }
+.toggle { display: flex; align-items: center; justify-content: center; width: 44px; height: 44px; margin-left: 4px; padding: 0; border: 1px solid var(--line); border-radius: 12px; background: transparent; color: var(--fg); cursor: pointer; }
+.toggle:hover, .btn-ghost:hover { background: var(--raise); }
+:root[data-theme="dark"] .only-light, :root[data-theme="light"] .only-dark { display: none; }
 
-.hero { position: relative; padding-top: 88px; padding-bottom: 72px; display: flex; flex-wrap: wrap; align-items: center; gap: 56px; }
-.glow { position: absolute; right: 4%; top: 40px; width: 460px; max-width: 70%; height: 460px; border-radius: 50%; background: var(--accent); opacity: 0.13; filter: blur(110px); pointer-events: none; }
-.motion .glow { animation: drift 14s ease-in-out infinite; }
-.hero-copy { position: relative; flex: 1 1 460px; min-width: 0; display: flex; flex-direction: column; gap: 26px; }
-.motion .hero-copy { animation: rise .7s cubic-bezier(.2,.7,.2,1) both; }
-.hero h1 { font-size: clamp(40px, 5.4vw, 68px); line-height: 1.02; letter-spacing: -0.03em; }
-.hero .lead { font-size: 19px; max-width: 540px; }
-.row { display: flex; flex-wrap: wrap; gap: 12px; }
-.install { display: flex; align-items: center; gap: 12px; align-self: flex-start; max-width: 100%; overflow-x: auto; font-family: var(--mono); font-size: 14px; color: var(--soft); background: rgba(255,255,255,0.04); border: 1px solid var(--line); border-radius: 12px; padding: 14px 18px; white-space: nowrap; }
-.install .prompt { color: var(--accent); }
-.install .cursor { width: 8px; height: 17px; background: var(--accent); flex: none; }
-.motion .install .cursor { animation: blink 1.1s steps(1) infinite; }
+/* Buttons */
+.btn { display: flex; align-items: center; gap: 10px; min-height: 48px; padding: 0 22px; border-radius: 12px; font-weight: 600; text-decoration: none; }
+.btn-primary { background: var(--btn-bg); color: var(--btn-fg); }
+.btn-primary:hover { filter: brightness(1.08); }
+.btn-ghost { border: 1px solid var(--line); color: var(--fg); }
 
-.panel { position: relative; flex: 1 1 440px; min-width: 0; background: rgba(13,17,15,0.82); border: 1px solid var(--line); border-radius: 22px; padding: 26px; display: flex; flex-direction: column; gap: 20px; }
-.motion .hero .panel { animation: rise .7s cubic-bezier(.2,.7,.2,1) .15s both; }
-.panel-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 8px; }
-.panel-title { font-family: var(--display); font-weight: 600; font-size: 18px; }
-.small { font-size: 13px; color: var(--label); }
-.bars { display: flex; flex-direction: column; gap: 16px; }
-.bar-label { display: flex; justify-content: space-between; gap: 12px; font-size: 14px; margin-bottom: 7px; }
-.bar-label .v { font-family: var(--mono); font-weight: 500; font-variant-numeric: tabular-nums; }
-.bar-label .v.best { color: var(--accent); }
-.track { height: 10px; border-radius: 999px; background: rgba(255,255,255,0.08); }
-.fill { height: 10px; border-radius: 999px; min-width: 6px; transform-origin: left; background: var(--soft); }
-.fill.best { background: var(--accent); }
-.fill.low { background: var(--dim); }
-.motion .hero .fill { animation: grow 1.2s cubic-bezier(.2,.7,.2,1) .45s both; }
-.motion .hero .bar:nth-child(2) .fill { animation-delay: .57s; }
-.motion .hero .bar:nth-child(3) .fill { animation-delay: .69s; }
-.motion .hero .bar:nth-child(4) .fill { animation-delay: .81s; }
-.motion .reveal .fill { transform: scaleX(0); }
-.motion .reveal.in .fill { animation: grow 1.2s cubic-bezier(.2,.7,.2,1) both; }
-.motion .reveal.in .bar:nth-child(2) .fill { animation-delay: .12s; }
-.motion .reveal.in .bar:nth-child(3) .fill { animation-delay: .24s; }
-.motion .reveal.in .bar:nth-child(4) .fill { animation-delay: .36s; }
-.note { font-size: 14px; color: var(--label); border-top: 1px solid var(--line); padding-top: 16px; }
+/* Hero */
+.hero { display: flex; flex-wrap: wrap; align-items: center; gap: 44px 56px; padding: 48px 0 80px; }
+.hero-copy { flex: 1.1 1 440px; min-width: 0; display: flex; flex-direction: column; align-items: flex-start; gap: 22px; }
+.eyebrow { display: flex; align-items: center; gap: 10px; padding: 7px 14px; border: 1px solid var(--line); border-radius: 999px; font-size: 13px; color: var(--soft); }
+.live { flex: none; width: 8px; height: 8px; border-radius: 50%; background: var(--accent); animation: blink 2.4s ease-in-out infinite; }
+.hero h1 { font-size: clamp(36px, 5vw, 60px); line-height: 1.04; letter-spacing: -0.03em; }
+.hero h1 span { color: var(--accent); }
+.lead { max-width: 560px; font-size: 18px; color: var(--soft); }
+.actions { display: flex; flex-wrap: wrap; gap: 12px; }
+.install { display: flex; align-items: center; gap: 12px; max-width: 100%; padding: 13px 18px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); font-family: var(--mono); font-size: 14px; overflow-x: auto; white-space: nowrap; }
+.install b { font-weight: 400; color: var(--accent); }
 
-.strip { border-top: 1px solid rgba(255,255,255,0.08); border-bottom: 1px solid rgba(255,255,255,0.08); background: rgba(255,255,255,0.02); }
-.stats { padding-top: 44px; padding-bottom: 44px; display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 32px; }
-.stat b { display: block; font-family: var(--display); font-weight: 700; font-size: 40px; letter-spacing: -0.02em; line-height: 1; color: var(--accent); margin-bottom: 8px; white-space: nowrap; }
-.stat span { font-size: 15px; color: var(--muted); }
+/* The frontier chart */
+.hero-art { flex: 1 1 440px; min-width: 0; }
+.panel { padding: 18px 18px 16px; border: 1px solid var(--line); border-radius: 22px; background: var(--surface); }
+.panel-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px 16px; margin-bottom: 6px; }
+.panel-title { font-family: var(--display); font-weight: 600; font-size: 16px; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 13px; color: var(--muted); }
+.legend span { display: flex; align-items: center; gap: 7px; }
+.legend i { width: 10px; height: 10px; border-radius: 50%; background: var(--accent); }
+.legend i.beaten { background: var(--dot); }
+.legend i.bar { width: 2px; height: 14px; border-radius: 0; }
+.chart { position: relative; }
+.chart svg { display: block; width: 100%; height: auto; }
+.chart .axis-label { position: absolute; font-family: var(--mono); font-size: 12px; color: var(--muted); }
+.chart .axis-y { left: 8.5%; top: 3%; }
+.chart .axis-x { right: 4.5%; bottom: 9.5%; }
+.panel p, .note { margin-top: 8px; padding: 0 4px; font-size: 14px; color: var(--muted); }
+.c-grid { fill: none; stroke: var(--line); stroke-width: 1; }
+.c-axis { fill: none; stroke: var(--muted); stroke-width: 1.4; stroke-linecap: round; }
+.c-area { fill: var(--accent-soft); }
+.c-line { fill: none; stroke: var(--accent); stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; opacity: 0.55; }
+.c-flow { fill: none; stroke: var(--accent); stroke-width: 2.5; stroke-linecap: round; stroke-dasharray: 6 14; animation: flow 5s linear infinite; }
+.c-node { fill: var(--accent); stroke: var(--surface); stroke-width: 3; }
+.c-halo { fill: var(--accent); transform-box: fill-box; transform-origin: center; animation: halo 3.2s ease-out infinite; }
+.c-whisker { fill: none; stroke: var(--accent); stroke-width: 1.6; stroke-linecap: round; opacity: 0.75; transform-box: fill-box; transform-origin: center; animation: breathe 4.6s ease-in-out infinite; }
+.c-pt { fill: var(--dot); animation: drift-a 7s ease-in-out infinite alternate; }
+.c-pt.b { animation-name: drift-b; animation-duration: 9s; }
+.c-pt.c { animation-name: drift-c; animation-duration: 8s; }
+.c-pt.d { animation-name: drift-d; animation-duration: 11s; }
+.c-runner { fill: var(--fg); animation: run 6s linear infinite; }
+.c-sweep { fill: none; stroke: var(--accent); stroke-width: 1; animation: sweep 9s linear infinite; }
+.d1 { animation-delay: -0.6s; } .d2 { animation-delay: -1.3s; } .d3 { animation-delay: -2s; } .d4 { animation-delay: -2.7s; } .d5 { animation-delay: -3.4s; }
 
-.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 18px; }
-.grid.wide { grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); }
-.card { background: var(--surface); border: 1px solid var(--line); border-radius: 20px; padding: 28px; display: flex; flex-direction: column; gap: 12px; min-width: 0; transition: transform .25s ease, border-color .25s ease, background .25s ease; }
-.card:hover { transform: translateY(-4px); border-color: rgba(255,255,255,0.28); background: rgba(255,255,255,0.06); }
-.card h3 { font-family: var(--display); font-weight: 600; font-size: 21px; }
-.card p { color: var(--muted); font-size: 15.5px; }
-.step { font-family: var(--display); font-weight: 700; font-size: 15px; color: var(--accent); }
-pre { margin: 0; font-family: var(--mono); font-size: 12.5px; line-height: 1.6; color: var(--soft); background: var(--code-bg); border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; padding: 14px; overflow-x: auto; }
+/* Sections */
+.section { padding: 72px 0; border-top: 1px solid var(--line); }
+.head { display: flex; flex-direction: column; gap: 14px; max-width: 760px; margin-bottom: 36px; }
+.kicker { font-family: var(--mono); font-size: 13px; color: var(--accent); }
+.head h2, .status h2, .cta h2 { font-size: clamp(28px, 3.6vw, 42px); }
+.head p, .status-copy p, .cta p { font-size: 17px; color: var(--soft); }
 
-.split { padding-top: 104px; display: flex; flex-wrap: wrap; gap: 48px; align-items: center; }
-.split-copy { flex: 1 1 380px; min-width: 0; display: flex; flex-direction: column; gap: 18px; }
-.textlink { align-self: flex-start; font-weight: 600; padding: 12px 0; display: inline-flex; align-items: center; gap: 8px; text-underline-offset: 4px; }
-.panel.tall { flex: 1 1 460px; padding: 28px; gap: 26px; background: var(--surface); }
-.group { display: flex; flex-direction: column; gap: 14px; }
-.group + .group { border-top: 1px solid var(--line); padding-top: 24px; }
-.group-title { font-family: var(--display); font-weight: 600; font-size: 17px; }
+/* Results */
+.rows { padding: 6px 24px 10px; border: 1px solid var(--line); border-radius: 22px; background: var(--surface); }
+.row { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 24px; padding: 16px 0; }
+.row + .row { border-top: 1px solid var(--line); }
+.row-name { flex: 1 1 230px; min-width: 0; font-weight: 600; }
+.row-name small { display: block; font-family: var(--mono); font-size: 13px; font-weight: 400; color: var(--muted); }
+.track { flex: 2 1 240px; min-width: 0; position: relative; height: 28px; }
+.track::before { content: ""; position: absolute; left: 0; right: 0; top: 13px; height: 2px; background: var(--line); }
+.range { position: absolute; top: 8px; height: 12px; border: 1px solid var(--muted); border-radius: 6px; background: var(--raise); }
+.score { position: absolute; top: 6px; width: 16px; height: 16px; margin-left: -8px; border-radius: 50%; background: var(--muted); }
+.row.good .range { border-color: var(--accent); background: var(--accent-soft); }
+.row.good .score { background: var(--accent); }
+.figures { flex: 0 0 150px; font-family: var(--mono); font-size: 13px; color: var(--muted); }
+.figures b { font-size: 19px; font-weight: 500; color: var(--fg); }
+.verdict { flex: 0 0 150px; display: flex; }
+.chip { padding: 5px 12px; border: 1px solid var(--line); border-radius: 999px; font-size: 13px; font-weight: 600; color: var(--muted); }
+.chip.best { border-color: transparent; background: var(--accent-soft); color: var(--accent); }
+.chip.close { border-color: var(--accent); color: var(--accent); }
 
-.status { border: 1px solid var(--line); border-radius: 22px; padding: 36px; display: flex; flex-wrap: wrap; gap: 32px; background: rgba(255,255,255,0.02); }
-.status-head { flex: 1 1 260px; min-width: 0; display: flex; flex-direction: column; gap: 12px; }
-.status h2 { font-size: 30px; line-height: 1.12; }
-.status ul { flex: 2 1 420px; min-width: 0; margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 12px; color: var(--soft); }
+/* Cards */
+.grid { display: flex; flex-wrap: wrap; gap: 16px; }
+.card { flex: 1 1 300px; min-width: 0; display: flex; flex-direction: column; gap: 10px; padding: 24px; border: 1px solid var(--line); border-radius: 18px; background: var(--surface); transition: border-color 0.2s ease; }
+.card:hover { border-color: var(--accent); }
+.card svg { color: var(--accent); }
+.card h3 { font-family: var(--display); font-weight: 600; font-size: 20px; }
+.card p { font-size: 15px; color: var(--soft); }
+.stat { flex: 1 1 280px; min-width: 0; padding: 26px 24px; border: 1px solid var(--line); border-radius: 18px; }
+.stat b { display: block; font-family: var(--display); font-weight: 700; font-size: 34px; line-height: 1.1; letter-spacing: -0.02em; color: var(--accent); }
+.stat p { margin-top: 10px; font-size: 15px; color: var(--soft); }
+.step { flex: 1 1 320px; gap: 12px; }
+.step .num { font-family: var(--display); font-weight: 700; font-size: 15px; color: var(--accent); }
+pre { margin: auto 0 0; padding: 14px; border-radius: 12px; background: var(--code-bg); color: var(--code-fg); font-family: var(--mono); font-size: 13px; line-height: 1.6; white-space: pre-wrap; overflow-wrap: anywhere; }
 
-.between { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 24px; }
+/* Status and closing */
+.status { display: flex; flex-wrap: wrap; gap: 32px 56px; }
+.status-copy { flex: 1 1 380px; min-width: 0; display: flex; flex-direction: column; gap: 14px; }
+.status ul { flex: 1.3 1 420px; min-width: 0; margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 12px; }
+.status li { padding: 16px 18px; border: 1px solid var(--line); border-radius: 14px; font-size: 15px; color: var(--soft); }
+.status li b { font-weight: 600; color: var(--fg); }
+.cta { margin-bottom: 56px; padding: 48px 32px; border: 1px solid var(--line); border-radius: 26px; background: var(--surface); display: flex; flex-direction: column; align-items: center; gap: 20px; text-align: center; }
+.cta .actions { justify-content: center; }
+.foot { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px 24px; padding: 24px 0 40px; border-top: 1px solid var(--line); font-size: 14px; color: var(--muted); }
+.foot div { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 20px; }
+.foot .who { gap: 10px; }
 
-.cta { background: var(--accent); color: var(--on-accent); border-radius: 28px; padding: 56px 40px; display: flex; flex-wrap: wrap; gap: 40px; align-items: center; }
-.cta-copy { flex: 1 1 340px; min-width: 0; display: flex; flex-direction: column; gap: 14px; align-items: flex-start; }
-.cta h2 { font-size: clamp(30px, 3.8vw, 46px); line-height: 1.05; }
-.cta p { font-size: 17px; max-width: 460px; }
-.cmds { flex: 1 1 380px; min-width: 0; display: flex; flex-direction: column; gap: 12px; }
-.cmd { display: flex; align-items: center; gap: 14px; background: var(--on-accent); color: var(--fg); border-radius: 14px; padding: 16px 18px; font-family: var(--mono); font-size: 13.5px; overflow-x: auto; white-space: nowrap; }
-.cmd b { font-family: var(--display); color: var(--accent); }
-
-footer { padding-top: 56px; padding-bottom: 48px; display: flex; flex-wrap: wrap; justify-content: space-between; gap: 16px 32px; font-size: 14px; color: var(--label); }
-footer nav { display: flex; flex-wrap: wrap; gap: 4px 20px; }
-footer a { color: var(--soft); padding: 12px 0; }
-
-/* The page is complete and visible without motion. The "motion" class is
-   added on the first painted frame, so a background tab, a link preview
-   or a browser without scripts never shows hidden content. */
-.motion .reveal { opacity: 0; transform: translateY(22px); transition: opacity .7s ease, transform .7s cubic-bezier(.2,.7,.2,1); }
-.motion .reveal.in { opacity: 1; transform: none; }
-
-@keyframes grow { from { transform: scaleX(0); } to { transform: scaleX(1); } }
-@keyframes rise { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: translateY(0); } }
-@keyframes pulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(124,242,168,0.45); } 60% { box-shadow: 0 0 0 7px rgba(124,242,168,0); } }
-@keyframes drift { 0% { transform: translate(0,0) scale(1); } 50% { transform: translate(-60px,30px) scale(1.15); } 100% { transform: translate(0,0) scale(1); } }
-@keyframes blink { 0%, 49% { opacity: 1; } 50%, 100% { opacity: 0; } }
-@media (prefers-reduced-motion: reduce) {
-  *, *::before { animation: none !important; transition: none !important; }
-  .motion .reveal { opacity: 1; transform: none; }
-  .motion .reveal .fill { transform: none; }
-  html { scroll-behavior: auto; }
+@keyframes flow { to { stroke-dashoffset: -200; } }
+@keyframes halo { 0% { transform: scale(1); opacity: 0.5; } 70%, 100% { transform: scale(3); opacity: 0; } }
+@keyframes breathe { 0%, 100% { transform: scaleY(0.7); } 50% { transform: scaleY(1.12); } }
+@keyframes drift-a { from { transform: translate(0, 0); } to { transform: translate(9px, -7px); } }
+@keyframes drift-b { from { transform: translate(0, 0); } to { transform: translate(-8px, -5px); } }
+@keyframes drift-c { from { transform: translate(0, 0); } to { transform: translate(6px, 8px); } }
+@keyframes drift-d { from { transform: translate(0, 0); } to { transform: translate(-7px, 6px); } }
+@keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }
+@keyframes sweep { 0% { transform: translateX(30px); opacity: 0; } 8%, 92% { opacity: 0.5; } 100% { transform: translateX(500px); opacity: 0; } }
+/* The runner follows the frontier from one setup to the next */
+@keyframes run {
+  0% { transform: translate(70px, 300px); opacity: 0; }
+  4% { opacity: 1; }
+  20% { transform: translate(130px, 200px); }
+  40% { transform: translate(220px, 130px); }
+  60% { transform: translate(330px, 90px); }
+  80% { transform: translate(450px, 70px); opacity: 1; }
+  88%, 100% { transform: translate(450px, 70px); opacity: 0; }
 }
-@media (max-width: 640px) {
-  .nav { border-radius: 24px; padding: 12px 14px; }
-  .nav-links { order: 3; width: 100%; }
-  .hero { padding-top: 56px; }
-  .cta { padding: 40px 24px; }
-  .status { padding: 26px; }
-  .section, .split { padding-top: 76px; }
+
+@media (max-width: 760px) {
+  .nav-link.wide { display: none; }
+  .hero { padding-top: 32px; }
+  .section { padding: 56px 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+  .c-runner, .c-sweep, .c-halo, .mark-halo { opacity: 0; }
 }
 </style>
 </head>
 <body>
-<script>
-if (window.requestAnimationFrame && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-  requestAnimationFrame(function () { document.documentElement.classList.add('motion'); });
-}
-</script>
+{% macro mark(size, halo=false) -%}
+<svg class="mark" viewBox="0 0 64 64" width="{{ size }}" height="{{ size }}" aria-hidden="true">
+  <circle class="mark-low" cx="45" cy="43" r="5"/>
+  <path class="mark-line" d="M13 49 L28 26 L52 15"/>
+  <circle cx="13" cy="49" r="6"/><circle cx="28" cy="26" r="6"/>
+  {% if halo %}<circle class="mark-halo" cx="52" cy="15" r="6.5"/>{% endif %}
+  <circle cx="52" cy="15" r="6.5"/>
+</svg>
+{%- endmacro %}
 
 <div class="wrap">
-  <nav class="nav" aria-label="Main">
-    <a class="brand" href="{{ '.' | url }}">FrontierKit</a>
-    <div class="nav-links">
-      <a href="{{ 'GUIDE/' | url }}">Get started</a>
-      <a href="{{ 'USAGE/' | url }}">Docs</a>
-      <a href="{{ 'BENCHMARKS/' | url }}">Benchmarks</a>
-      <a href="{{ config.repo_url }}">GitHub</a>
-    </div>
-    <a class="btn btn-primary" href="{{ 'GUIDE/' | url }}">Get started</a>
-  </nav>
-</div>
 
-<header class="wrap hero">
-  <div class="glow" aria-hidden="true"></div>
+<nav class="nav" aria-label="Main">
+  <a class="brand" href="{{ '.' | url }}">{{ mark(32, true) }}<span>Frontier<span>Kit</span></span></a>
+  <div class="nav-links">
+    <a class="nav-link wide" href="{{ 'GUIDE/' | url }}">Get started</a>
+    <a class="nav-link wide" href="{{ 'USAGE/' | url }}">Python</a>
+    <a class="nav-link wide" href="{{ 'BENCHMARKS/' | url }}">Benchmarks</a>
+    <a class="nav-link" href="{{ config.repo_url }}">GitHub</a>
+    <button class="toggle" id="theme-toggle" type="button" aria-label="Switch between dark and light theme">
+      <svg class="ico only-dark" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6l1.4 1.4M17 17l1.4 1.4M5.6 18.4L7 17M17 7l1.4-1.4"/></svg>
+      <svg class="ico only-light" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"/></svg>
+    </button>
+  </div>
+</nav>
+
+<header class="hero">
   <div class="hero-copy">
-    <div class="eyebrow">Open source · Python · MIT</div>
-    <h1 class="display">Find out which model and prompt answer your questions best.</h1>
-    <p class="lead">FrontierKit runs your questions through every model, prompt and pipeline step you want to compare, scores the answers, and tells you which setup to use. It runs on free model endpoints.</p>
-    <div class="row">
-      <a class="btn btn-primary" href="{{ 'GUIDE/' | url }}">Get started in five minutes
-        <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16"><path d="M3 8h10M9 4l4 4-4 4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></a>
+    <div class="eyebrow"><span class="live"></span>Open source, MIT licence, Python 3.10 and newer</div>
+    <h1 class="display">Find the setup that answers your questions best. <span>Know how sure you can be.</span></h1>
+    <p class="lead">FrontierKit runs your questions through every model, prompt and pipeline step you want to compare. It tells you which setups are really better and which are too close to call, and lets you check weeks later that your choice still holds.</p>
+    <div class="actions">
+      <a class="btn btn-primary" href="{{ 'GUIDE/' | url }}">Get started
+        <svg class="ico" viewBox="0 0 16 16" width="16" height="16" aria-hidden="true" style="stroke-width: 2"><path d="M3 8h10M9 4l4 4-4 4"/></svg></a>
       <a class="btn btn-ghost" href="{{ config.repo_url }}">View on GitHub</a>
     </div>
-    <div class="install"><span class="prompt" aria-hidden="true">$</span><span>pip install "frontierkit[real]"</span><span class="cursor" aria-hidden="true"></span></div>
+    <div class="install"><b>$</b><span>pip install frontierkit</span></div>
   </div>
 
-  <div class="panel">
-    <div class="panel-head">
-      <span class="panel-title">One model, four ways to ask</span>
-      <span class="small">measured on a free Groq model</span>
+  <div class="hero-art">
+    <div class="panel">
+      <div class="panel-head">
+        <span class="panel-title">The frontier</span>
+        <div class="legend"><span><i></i>not beaten</span><span><i class="beaten"></i>beaten</span><span><i class="bar"></i>likely range</span></div>
+      </div>
+      <div class="chart">
+        <svg viewBox="0 0 520 380" aria-hidden="true">
+          <path class="c-grid" d="M30 70H500M30 130H500M30 190H500M30 250H500M30 310H500M70 30V350M160 30V350M250 30V350M340 30V350M430 30V350"/>
+          <path class="c-axis" d="M30 30V350H500"/>
+          <path class="c-sweep" d="M0 30V350"/>
+          <path class="c-area" d="M70 300L130 200L220 130L330 90L450 70V350H70Z"/>
+          <circle class="c-pt" cx="150" cy="290" r="5"/>
+          <circle class="c-pt b" cx="190" cy="240" r="5.5"/>
+          <circle class="c-pt c" cx="240" cy="210" r="4.5"/>
+          <circle class="c-pt d" cx="210" cy="300" r="5"/>
+          <circle class="c-pt b d2" cx="280" cy="170" r="5.5"/>
+          <circle class="c-pt d3" cx="300" cy="250" r="5"/>
+          <circle class="c-pt c d1" cx="350" cy="200" r="6"/>
+          <circle class="c-pt d d4" cx="380" cy="140" r="4.5"/>
+          <circle class="c-pt d5" cx="410" cy="230" r="5"/>
+          <circle class="c-pt b d3" cx="440" cy="150" r="5.5"/>
+          <circle class="c-pt c d2" cx="330" cy="310" r="4.5"/>
+          <circle class="c-pt d d1" cx="470" cy="120" r="5"/>
+          <path class="c-whisker" d="M65 268H75M70 268V332M65 332H75"/>
+          <path class="c-whisker d1" d="M125 166H135M130 166V234M125 234H135"/>
+          <path class="c-whisker d2" d="M215 102H225M220 102V158M215 158H225"/>
+          <path class="c-whisker d3" d="M325 66H335M330 66V114M325 114H335"/>
+          <path class="c-whisker d4" d="M445 48H455M450 48V92M445 92H455"/>
+          <path class="c-line" d="M70 300L130 200L220 130L330 90L450 70"/>
+          <path class="c-flow" d="M70 300L130 200L220 130L330 90L450 70"/>
+          <circle class="c-halo" cx="70" cy="300" r="7"/>
+          <circle class="c-halo d1" cx="130" cy="200" r="7"/>
+          <circle class="c-halo d2" cx="220" cy="130" r="7"/>
+          <circle class="c-halo d3" cx="330" cy="90" r="7"/>
+          <circle class="c-halo d4" cx="450" cy="70" r="7"/>
+          <circle class="c-node" cx="70" cy="300" r="7"/>
+          <circle class="c-node" cx="130" cy="200" r="7"/>
+          <circle class="c-node" cx="220" cy="130" r="7"/>
+          <circle class="c-node" cx="330" cy="90" r="7"/>
+          <circle class="c-node" cx="450" cy="70" r="7"/>
+          <circle class="c-runner" cx="0" cy="0" r="4.5"/>
+        </svg>
+        <span class="axis-label axis-y">quality</span>
+        <span class="axis-label axis-x">cost and time</span>
+      </div>
+      <p>Each dot is a setup you compared. The line joins the ones nothing beats on quality, speed and cost. The bars show how far each score can be trusted.</p>
     </div>
-    <div class="bars">
-      <div class="bar"><div class="bar-label"><span>Short prompt, with context</span><span class="v best">0.92</span></div><div class="track"><div class="fill best" style="width: 92%"></div></div></div>
-      <div class="bar"><div class="bar-label"><span>Short prompt, no context</span><span class="v">0.67</span></div><div class="track"><div class="fill" style="width: 67%"></div></div></div>
-      <div class="bar"><div class="bar-label"><span>Plain question, with context</span><span class="v">0.14</span></div><div class="track"><div class="fill low" style="width: 14%"></div></div></div>
-      <div class="bar"><div class="bar-label"><span>Plain question, no context</span><span class="v">0.06</span></div><div class="track"><div class="fill low" style="width: 6%"></div></div></div>
-    </div>
-    <p class="note">Answer quality from 0 to 1 on four sample questions. Same model, same questions: only the prompt and the context changed.</p>
   </div>
 </header>
 
-<section class="strip" aria-label="Measured results">
-  <div class="wrap stats">
-    <div class="stat reveal"><b>0.06 → 0.92</b><span>quality on one model, from changing the prompt and context</span></div>
-    <div class="stat reveal"><b>63×</b><span>speed gap for the same model on two vendors</span></div>
-    <div class="stat reveal"><b>4</b><span>free model providers supported out of the box</span></div>
-    <div class="stat reveal"><b>$0</b><span>to run the guide from start to finish</span></div>
+{# name, ms per answer, quality, range low, range high, verdict kind, verdict text #}
+{% set rows = [
+  ("Gemma 4 31B, three passages", 362, 0.95, 0.74, 1.00, "best", "best measured"),
+  ("Gemma 4 31B, one passage", 285, 0.90, 0.69, 1.00, "close", "too close to call"),
+  ("Llama 3.1 8B, three passages", 247, 0.34, 0.12, 0.48, "worse", "worse"),
+  ("Llama 3.1 8B, one passage", 259, 0.30, 0.11, 0.50, "worse", "worse"),
+  ("Gemma 4 31B, no passages", 257, 0.14, 0.01, 0.35, "worse", "worse"),
+  ("Llama 3.1 8B, no passages", 225, 0.01, 0.00, 0.22, "worse", "worse"),
+] %}
+<section class="section">
+  <div class="head">
+    <span class="kicker">Thirty questions, two free models</span>
+    <h2 class="display">A leaderboard names a winner. FrontierKit says what your questions can support.</h2>
+    <p>The top two setups cannot be told apart on these questions, so take the faster one. Both clearly beat the smaller model, and the same model without reading material.</p>
   </div>
+  <div class="rows">
+    {% for name, ms, quality, low, high, kind, verdict in rows %}
+    <div class="row{% if kind != 'worse' %} good{% endif %}">
+      <div class="row-name">{{ name }}<small>{{ ms }} ms per answer</small></div>
+      <div class="track" aria-hidden="true">
+        <div class="range" style="left: {{ (low * 100) | round | int }}%; width: {{ ((high - low) * 100) | round | int }}%"></div>
+        <div class="score" style="left: {{ (quality * 100) | round | int }}%"></div>
+      </div>
+      <div class="figures"><b>{{ '%.2f' | format(quality) }}</b> {{ '%.2f' | format(low) }} to {{ '%.2f' | format(high) }}</div>
+      <div class="verdict"><span class="chip {{ kind }}">{{ verdict }}</span></div>
+    </div>
+    {% endfor %}
+  </div>
+  <p class="note">Quality is word overlap with the reference answers, from 0 to 1. The bar is the range the true score plausibly lies in. Thirty reading-comprehension questions from SQuAD, answered by two free models.</p>
 </section>
 
-<main>
-<section class="wrap section">
-  <div class="head reveal">
-    <div class="eyebrow">What you can compare</div>
-    <h2 class="display">Anything that changes the answer.</h2>
+{# icon paths, title, text #}
+{% set features = [
+  ('<path d="M6 4h9l4 4v12H6z"/><path d="M9 12h7M9 16h5"/>', "Your questions, not a leaderboard", "A CSV of questions and reference answers is enough. Scorers cover short answers and extracted triples, or pass your own."),
+  ('<path d="M8 4h8M12 4v16M8 20h8"/><circle cx="12" cy="12" r="2.5"/>', "It says how sure it is", "Every score comes with a range. Two setups are compared question by question, and the answer can be that they are too close to call."),
+  ('<path d="M4 5v14h16"/><path d="M7 15l4-5 4 2 4-6"/>', "Quality, speed and cost together", "You see the setups that are not beaten on all three, and pick the trade-off you want."),
+  ('<path d="M4 7h16v4H4z"/><path d="M6 11v8h12v-8M10 15h4"/>', "No answer is paid for twice", "Every model reply is kept in a local file. Run the comparison again and no model is called; add one setup and only its new steps are."),
+  ('<path d="M20 12a8 8 0 1 1-2.4-5.7"/><path d="M20 4v4h-4M12 8v4l3 2"/>', "A choice you can check again", "Save what you chose and why, then verify it on a schedule. It reports whether quality dropped, the setup got slower, or the model is gone."),
+  ('<path d="M12 4l9 16H3z"/><path d="M12 10v4M12 17v.5"/>', "Failures are named, not hidden", "A rate limit, an outage or a retired model is recorded as what it is, not as a wrong answer."),
+] %}
+<section class="section">
+  <div class="head">
+    <span class="kicker">What it does</span>
+    <h2 class="display">Built for the choice you have to defend.</h2>
   </div>
   <div class="grid">
-    <div class="card reveal">
-      <svg aria-hidden="true" width="28" height="28" viewBox="0 0 28 28" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="4" y="5" width="20" height="7" rx="2"/><rect x="4" y="16" width="20" height="7" rx="2"/></svg>
-      <h3>Models and vendors</h3>
-      <p>SAIA, NVIDIA, Groq, OpenRouter, Ollama, or any endpoint that speaks the OpenAI chat format. No extra dependencies.</p>
+    {% for icon, title, text in features %}
+    <div class="card">
+      <svg class="ico" viewBox="0 0 24 24" width="26" height="26" aria-hidden="true">{{ icon | safe }}</svg>
+      <h3>{{ title }}</h3>
+      <p>{{ text }}</p>
     </div>
-    <div class="card reveal">
-      <svg aria-hidden="true" width="28" height="28" viewBox="0 0 28 28" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M5 7h18M5 14h12M5 21h16"/></svg>
-      <h3>Prompts and context</h3>
-      <p>Prompt templates, with or without reading material, in every combination.</p>
-    </div>
-    <div class="card reveal">
-      <svg aria-hidden="true" width="28" height="28" viewBox="0 0 28 28" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10 8l-6 6 6 6M18 8l6 6-6 6"/></svg>
-      <h3>Your own code</h3>
-      <p>Every pipeline step can be a plain Python function: a retriever, a re-ranker, a check on the answer.</p>
-    </div>
-    <div class="card reveal">
-      <svg aria-hidden="true" width="28" height="28" viewBox="0 0 28 28"><path d="M5 23V5M5 23h18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><circle cx="11" cy="16" r="2" fill="currentColor"/><circle cx="16" cy="10" r="2" fill="currentColor"/><circle cx="21" cy="13" r="2" fill="currentColor"/></svg>
-      <h3>Quality, speed and cost</h3>
-      <p>Results show the setups nothing else beats on all three, so you choose the trade-off.</p>
-    </div>
+    {% endfor %}
   </div>
+  <p class="note" style="margin-top: 20px; font-size: 15px">Works with any service or local server that accepts OpenAI-style chat requests, including SAIA, NVIDIA, Groq, OpenRouter and Ollama. Each pipeline step can also be a plain Python function.</p>
 </section>
 
-<section class="wrap section">
-  <div class="head reveal">
-    <div class="eyebrow">How it works</div>
-    <h2 class="display">Three steps from questions to a recommendation.</h2>
-  </div>
-  <div class="grid wide">
-    <div class="card reveal">
-      <span class="step">01</span>
-      <h3>Write your questions</h3>
-      <p>A CSV with questions, reference answers and, if you like, reading material.</p>
-<pre>question,answer,context
-Which organ produces insulin?,pancreas,"Insulin is…"
-Largest ocean?,Pacific Ocean|Pacific,"The Pacific…"</pre>
-    </div>
-    <div class="card reveal">
-      <span class="step">02</span>
-      <h3>Run one command</h3>
-      <p>It checks each model, then tries every combination, pacing calls to stay inside free limits.</p>
-<pre>python examples/pick_models.py \
-  --questions my_questions.csv</pre>
-    </div>
-    <div class="card reveal">
-      <span class="step">03</span>
-      <h3>Read the answer</h3>
-      <p>A ranked table, the best setup, and a faster one if it is nearly as good.</p>
-<pre>Best quality: groq_gpt_oss_20b
-  with short+with_context
-  (0.92, 292 ms)</pre>
-    </div>
-  </div>
-</section>
-
-<section class="wrap split">
-  <div class="split-copy reveal">
-    <div class="eyebrow">Why measure</div>
+<section class="section">
+  <div class="head">
+    <span class="kicker">Why measure</span>
     <h2 class="display">The model card will not tell you this.</h2>
-    <p class="lead">On twelve reading-comprehension questions, the same Gemma model gave equally good answers on two vendors, but one took 230 ms and the other 14.5 seconds. Without reading material its quality fell from 0.95 to 0.10.</p>
-    <a class="textlink" href="{{ 'BENCHMARKS/' | url }}">See the benchmarks
-      <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16"><path d="M3 8h10M9 4l4 4-4 4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></a>
-  </div>
-  <div class="panel tall reveal">
-    <div class="group">
-      <span class="group-title">Time per answer, same model</span>
-      <div class="bars">
-        <div class="bar"><div class="bar-label"><span>Gemma 31B on SAIA</span><span class="v best">230 ms</span></div><div class="track"><div class="fill best" style="width: 1.6%"></div></div></div>
-        <div class="bar"><div class="bar-label"><span>Gemma 31B on NVIDIA</span><span class="v">14,516 ms</span></div><div class="track"><div class="fill" style="width: 100%"></div></div></div>
-      </div>
-    </div>
-    <div class="group">
-      <span class="group-title">Answer quality</span>
-      <div class="bars">
-        <div class="bar"><div class="bar-label"><span>Gemma 31B, best paragraph given</span><span class="v best">0.95</span></div><div class="track"><div class="fill best" style="width: 95%"></div></div></div>
-        <div class="bar"><div class="bar-label"><span>Llama 8B, best paragraph given</span><span class="v">0.33</span></div><div class="track"><div class="fill" style="width: 33%"></div></div></div>
-        <div class="bar"><div class="bar-label"><span>Gemma 31B, no reading material</span><span class="v">0.10</span></div><div class="track"><div class="fill low" style="width: 10%"></div></div></div>
-      </div>
-    </div>
-  </div>
-</section>
-
-<section class="wrap section">
-  <div class="status reveal">
-    <div class="status-head">
-      <div class="eyebrow">Where it stands</div>
-      <h2 class="display">An honest status report.</h2>
-    </div>
-    <ul>
-      <li>Alpha-stage research library, MIT licensed, with about 250 tests.</li>
-      <li>Trying every combination is complete and dependable.</li>
-      <li>For spaces too large to try in full, its search currently finds the best setup in about as many calls as random picking.</li>
-      <li>Pipelines are straight chains of steps; branching pipelines are not searched.</li>
-    </ul>
-  </div>
-</section>
-
-<section class="wrap section">
-  <div class="between reveal">
-    <div class="head">
-      <div class="eyebrow">Open source</div>
-      <h2 class="display">Built in the open. Contributions welcome.</h2>
-      <p class="lead">FrontierKit is MIT licensed and developed on GitHub. Ideas, bug reports and pull requests are all welcome, whatever their size.</p>
-    </div>
-    <div class="row">
-      <a class="btn btn-primary" href="{{ config.repo_url }}/blob/main/CONTRIBUTING.md">How to contribute</a>
-      <a class="btn btn-ghost" href="{{ config.repo_url }}/issues/new/choose">Open an issue</a>
-    </div>
+    <p>Twelve reading-comprehension questions from SQuAD, the same Gemma model on two vendors.</p>
   </div>
   <div class="grid">
-    <div class="card reveal"><h3>Add a provider</h3><p>One row in a table: a base URL, a key name and a default model.</p></div>
-    <div class="card reveal"><h3>Write a scorer</h3><p>A function that grades an answer from 0 to 1, for a task the built-in scorers miss.</p></div>
-    <div class="card reveal"><h3>Share a result</h3><p>Ran it on your own questions? Tell us what won, and what surprised you.</p></div>
-    <div class="card reveal"><h3>Improve the search</h3><p>The open research problem: beat random picking when the space is too large to try in full.</p></div>
+    <div class="stat"><b>230 or 14,516 ms</b><p>The same model with the same quality, 0.95, answered this fast on one vendor and this slowly on the other.</p></div>
+    <div class="stat"><b>0.95 to 0.10</b><p>What happened to its quality when the reading material was taken away.</p></div>
+    <div class="stat"><b>0.33</b><p>The score of a smaller model that was no faster.</p></div>
+  </div>
+  <p class="note" style="margin-top: 20px"><a href="{{ 'BENCHMARKS/' | url }}">See the benchmark</a> behind these figures.</p>
+</section>
+
+<section class="section">
+  <div class="head">
+    <span class="kicker">Three steps</span>
+    <h2 class="display">From your questions to a choice that holds.</h2>
+  </div>
+  <div class="grid">
+    <div class="card step"><span class="num">1. Install</span><p>One package. A free key from SAIA, NVIDIA, Groq or OpenRouter is enough to start.</p><pre>pip install "frontierkit[real]"</pre></div>
+    <div class="card step"><span class="num">2. Compare</span><p>Run every combination of prompt, context and model on your own questions.</p><pre>python examples/pick_models.py --questions my_questions.csv</pre></div>
+    <div class="card step"><span class="num">3. Check it still holds</span><p>Run the saved choice again later, by hand or on a schedule.</p><pre>frontierkit verify decision.json --setup compare.py</pre></div>
   </div>
 </section>
 
-<section class="wrap section">
-  <div class="cta reveal">
-    <div class="cta-copy">
-      <h2 class="display">Try it on your own questions.</h2>
-      <p>A free API key and a handful of questions are enough for a first answer.</p>
-      <a class="btn btn-dark" href="{{ 'GUIDE/' | url }}">Read the guide</a>
-    </div>
-    <div class="cmds">
-      <div class="cmd"><b>1</b><span>pip install "frontierkit[real]"</span></div>
-      <div class="cmd"><b>2</b><span>git clone https://github.com/frontierkit/frontierkit</span></div>
-      <div class="cmd"><b>3</b><span>python examples/pick_models.py</span></div>
-    </div>
+<section class="section status">
+  <div class="status-copy">
+    <span class="kicker">Where it stands</span>
+    <h2 class="display">An honest status report.</h2>
+    <p>FrontierKit is an alpha-stage research library. Its API may change between minor versions.</p>
+  </div>
+  <ul>
+    <li><b>Dependable today.</b> Trying every combination is complete.</li>
+    <li><b>Small sets, large gaps.</b> A few dozen questions can only separate large differences, and the output says what it cannot tell apart.</li>
+    <li><b>Search is not there yet.</b> For spaces too large to try in full, the built-in search finds the best setup in about as many calls as random picking.</li>
+    <li><b>Straight chains only.</b> Branching pipelines are not searched.</li>
+  </ul>
+</section>
+
+<section class="cta">
+  <h2 class="display">Try it on your own questions.</h2>
+  <p>Free models, five minutes, and a result you can explain.</p>
+  <div class="actions">
+    <a class="btn btn-primary" href="{{ 'GUIDE/' | url }}">Read the guide</a>
+    <a class="btn btn-ghost" href="{{ config.repo_url }}/blob/main/CONTRIBUTING.md">Contribute</a>
   </div>
 </section>
-</main>
 
-<footer class="wrap">
-  <span>FrontierKit · MIT licensed · developed by Siddharth Saraswat</span>
-  <nav aria-label="Footer">
-    <a href="{{ config.repo_url }}">GitHub</a>
-    <a href="https://pypi.org/project/frontierkit/">PyPI</a>
-    <a href="{{ config.repo_url }}/blob/main/CHANGELOG.md">Changelog</a>
-  </nav>
+<footer class="foot">
+  <div class="who">{{ mark(22) }}<span>FrontierKit, MIT licence. Developed by Siddharth Saraswat. Formerly ChatCortex.</span></div>
+  <div>
+    <a class="nav-link" href="https://pypi.org/project/frontierkit/" style="padding: 0">PyPI</a>
+    <a class="nav-link" href="{{ config.repo_url }}" style="padding: 0">GitHub</a>
+    <a class="nav-link" href="{{ 'CHANGELOG/' | url }}" style="padding: 0">Changelog</a>
+  </div>
 </footer>
 
+</div>
+
 <script>
-(function () {
-  var items = document.querySelectorAll('.reveal');
-  if (!('IntersectionObserver' in window)) {
-    items.forEach(function (el) { el.classList.add('in'); });
-    return;
-  }
-  var observer = new IntersectionObserver(function (entries) {
-    entries.forEach(function (entry) {
-      if (entry.isIntersecting) { entry.target.classList.add('in'); observer.unobserve(entry.target); }
-    });
-  }, { threshold: 0.15 });
-  items.forEach(function (el) { observer.observe(el); });
-  // Never leave content hidden: if nothing has been revealed shortly
-  // after load (a background tab, an embedded preview), show everything.
-  window.setTimeout(function () {
-    if (!document.querySelector('.reveal.in')) {
-      items.forEach(function (el) { el.classList.add('in'); });
-    }
-  }, 1500);
-})();
+// The theme button. The choice is saved in the entry the docs pages read,
+// so it carries over to them and back.
+document.getElementById("theme-toggle").addEventListener("click", function () {
+  var root = document.documentElement;
+  var light = root.getAttribute("data-theme") !== "light";
+  root.setAttribute("data-theme", light ? "light" : "dark");
+  try {
+    localStorage.setItem(window.__fkScope + ".__palette", JSON.stringify({
+      index: light ? 1 : 0,
+      color: { media: "", scheme: light ? "default" : "slate", primary: "custom", accent: "custom" }
+    }));
+  } catch (e) {}
+});
 </script>
 </body>
 </html>

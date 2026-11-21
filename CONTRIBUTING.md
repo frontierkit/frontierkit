@@ -2,7 +2,7 @@
 
 Thank you for your interest in contributing to FrontierKit.
 
-FrontierKit is a research framework for automated synthesis and optimization of AI agent architectures.
+FrontierKit finds out which model, prompt and pipeline answer your own questions best, and says how sure the result is.
 
 ## Development Setup
 
@@ -32,10 +32,10 @@ Run tests:
 pytest
 ```
 
-Try the quickstart:
+Try an example that needs no API key:
 
 ```bash
-python examples/quickstart.py
+python examples/scored_pipeline.py
 ```
 
 ## Code Style
@@ -49,7 +49,7 @@ Run:
 
 ```bash
 black .
-ruff check frontierkit tests examples
+ruff check frontierkit tests examples benchmarks compat
 ```
 
 ## Pull Requests
@@ -63,9 +63,9 @@ When submitting a PR:
 Example:
 
 ```
-feat: add progressive pareto beam search
-fix: correct hypervolume computation
-docs: update architecture documentation
+Add a scorer for extracted triples
+Fix the range for a single example
+Show margins of error in the model-picking example
 ```
 
 ### Commit message policy
@@ -75,14 +75,15 @@ Commit and tag messages must contain no attribution footers or trailers
 lines (including any AI tooling). A commit message ends at its body's
 last line.
 
-## Research Contributions
+## What Helps Most
 
 FrontierKit welcomes contributions related to:
 
-* architecture search algorithms
-* multi-objective optimization
-* agent system evaluation
-* experimental benchmarks
+* scorers and metrics for more kinds of task
+* backends for more model vendors and local servers
+* statistics for small sets of examples
+* search that needs fewer model calls than trying everything
+* benchmarks on real models, and results from running the existing ones
 
 ## Code of Conduct
 
