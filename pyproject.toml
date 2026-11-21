@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "frontierkit"
-version = "0.13.0"
+version = "0.13.1"
 description = "Find out which model, prompt and pipeline answer your own questions best, with honest margins of error, and re-check later that the choice still holds"
 readme = "README.md"
 requires-python = ">=3.10"
